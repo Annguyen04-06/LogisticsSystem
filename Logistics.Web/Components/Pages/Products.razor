@@ -1,0 +1,168 @@
+@page "/products"
+@inject ProductApiService ProductApiService
+@inject CategoryApiService CategoryApiService
+@inject CartApiService CartApiService
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Sản phẩm</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Sản phẩm</h1>
+        <p class="page-subtitle">Duyệt sản phẩm đang bán và thêm vào giỏ hàng.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <input class="form-control" style="min-width: 220px" @bind="searchKeyword" placeholder="Tìm kiếm sản phẩm" />
+        <select class="form-select" style="min-width: 180px" @bind="selectedCategoryId">
+            <option value="0">Tất cả danh mục</option>
+            @foreach (var category in categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+        <button class="btn btn-primary" @onclick="LoadProductsAsync">Tìm kiếm</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="modern-card p-4 text-center text-muted">Đang tải sản phẩm...</div>
+}
+else if (products.Count == 0)
+{
+    <div class="modern-card p-4 text-center text-muted">Không có sản phẩm phù hợp.</div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var product in products)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="modern-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h2 class="h5 fw-bold mb-1">@product.Name</h2>
+                            <div class="text-muted small">@product.CategoryName</div>
+                        </div>
+                        <span class="badge text-bg-success">Đang bán</span>
+                    </div>
+                    <p class="text-muted">@product.Description</p>
+                    <div class="mb-2">
+                        <div><strong>@product.Price.ToString("N0") VND</strong></div>
+                        <div class="text-muted small">Tồn kho: @product.Quantity</div>
+                        <div class="text-muted small">Người bán: @product.SellerName</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <InputNumber class="form-control form-control-sm" style="max-width: 90px"
+                                     @bind-Value="product.QuantityToAdd" min="1" />
+                        <button class="btn btn-sm btn-primary" @onclick="() => AddToCartAsync(product)">
+                            Thêm vào giỏ hàng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<ProductDto> products = [];
+    private List<CategoryDto> categories = [];
+    private string? searchKeyword;
+    private int selectedCategoryId;
+    private bool isLoading = true;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategoriesAsync();
+        await LoadProductsAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        var response = await CategoryApiService.GetCategoriesAsync();
+        categories = response?.Data ?? [];
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        successMessage = null;
+        errorMessage = null;
+        isLoading = true;
+
+        int? categoryId = selectedCategoryId == 0 ? null : selectedCategoryId;
+        var response = await ProductApiService.GetProductsAsync(searchKeyword, categoryId);
+        products = response?.Data ?? [];
+
+        foreach (var product in products)
+        {
+            product.QuantityToAdd = 1;
+        }
+
+        isLoading = false;
+    }
+
+    private async Task AddToCartAsync(ProductDto product)
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        if (!AuthState.IsAuthenticated)
+        {
+            await AuthService.LoadSessionAsync();
+        }
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (product.QuantityToAdd <= 0)
+        {
+            errorMessage = "Số lượng phải lớn hơn 0.";
+            return;
+        }
+
+        if (product.QuantityToAdd > product.Quantity)
+        {
+            errorMessage = "Số lượng không được vượt quá tồn kho.";
+            return;
+        }
+
+        try
+        {
+            var response = await CartApiService.AddToCartAsync(new AddToCartDto
+            {
+                ProductId = product.Id,
+                Quantity = product.QuantityToAdd
+            });
+
+            if (response?.Success == true)
+            {
+                successMessage = "Đã thêm sản phẩm vào giỏ hàng.";
+                return;
+            }
+
+            errorMessage = response?.Message ?? "Không thể thêm sản phẩm vào giỏ hàng.";
+        }
+        catch
+        {
+            errorMessage = "Không thể thêm sản phẩm vào giỏ hàng.";
+        }
+    }
+}

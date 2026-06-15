@@ -1,0 +1,488 @@
+@page "/my-tickets"
+@page "/tickets"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject TicketApiService TicketApi
+@inject NavigationManager Navigation
+
+<PageTitle>Hỗ trợ khách hàng</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@PageTitleText</h1>
+        <p class="page-subtitle">@PageSubtitleText</p>
+    </div>
+    <button class="btn btn-outline-primary" type="button" @onclick="ReloadTicketsAsync">Tải lại</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="row g-3">
+    @if (IsCustomer)
+    {
+        <div class="col-xl-4">
+            <div class="modern-card p-4">
+                <h2 class="h5 fw-bold mb-3">Gửi phiếu hỗ trợ</h2>
+                <EditForm Model="@createForm" OnValidSubmit="CreateTicketAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <label class="form-label">Mã người bán</label>
+                    <InputNumber class="form-control" @bind-Value="createForm.SellerId" />
+                    <div class="form-text">Không bắt buộc. Bỏ trống nếu cần hỗ trợ chung.</div>
+
+                    <label class="form-label mt-3">Tiêu đề</label>
+                    <InputText class="form-control" @bind-Value="createForm.Title" placeholder="Nhập tiêu đề" />
+
+                    <label class="form-label mt-3">Nội dung</label>
+                    <InputTextArea class="form-control" rows="5" @bind-Value="createForm.Content" placeholder="Nhập nội dung cần hỗ trợ" />
+
+                    <button class="btn btn-success mt-3" type="submit" disabled="@isSaving">
+                        @(isSaving ? "Đang gửi..." : "Gửi phiếu hỗ trợ")
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    <div class="@(IsCustomer ? "col-xl-8" : "col-12")">
+        <div class="modern-card table-card">
+            @if (isLoading)
+            {
+                <div class="p-4 text-center text-muted">Đang tải dữ liệu...</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Tiêu đề</th>
+                                @if (!IsCustomer)
+                                {
+                                    <th>Khách hàng</th>
+                                }
+                                <th>Người bán</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày tạo</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (tickets.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="@(IsCustomer ? 6 : 7)" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var ticket in tickets)
+                                {
+                                    <tr>
+                                        <td>#@ticket.Id</td>
+                                        <td class="fw-semibold">@ticket.Title</td>
+                                        @if (!IsCustomer)
+                                        {
+                                            <td>@ticket.CustomerName</td>
+                                        }
+                                        <td>@(ticket.SellerName ?? "-")</td>
+                                        <td>
+                                            <span class="badge @GetStatusBadgeClass(ticket.Status)">
+                                                @GetStatusText(ticket.Status)
+                                            </span>
+                                        </td>
+                                        <td>@ticket.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-primary me-1" type="button" @onclick="() => SelectTicketAsync(ticket.Id)">Xem chi tiết</button>
+                                            @if (ticket.Status != "Closed")
+                                            {
+                                                <button class="btn btn-sm btn-success" type="button" @onclick="() => CloseTicketAsync(ticket.Id)">Đóng phiếu</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (selectedTicket is not null)
+{
+    <div class="modern-card p-4 mt-3">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+            <div>
+                <h2 class="h5 fw-bold mb-1">Chi tiết phiếu #@selectedTicket.Id</h2>
+                <div class="text-muted">@selectedTicket.Title</div>
+            </div>
+            <span class="badge align-self-start @GetStatusBadgeClass(selectedTicket.Status)">
+                @GetStatusText(selectedTicket.Status)
+            </span>
+        </div>
+
+        <div class="border rounded p-3 bg-light mb-3">
+            <div class="fw-semibold mb-1">Nội dung</div>
+            <div>@selectedTicket.Content</div>
+        </div>
+
+        @if (CanUpdateStatus && selectedTicket.Status != "Closed")
+        {
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-sm-5 col-lg-3">
+                    <label class="form-label">Cập nhật trạng thái</label>
+                    <select class="form-select" @bind="selectedStatus">
+                        <option value="Open">Đang mở</option>
+                        <option value="InProgress">Đang xử lý</option>
+                        <option value="Closed">Đã đóng</option>
+                    </select>
+                </div>
+                <div class="col-sm-auto">
+                    <button class="btn btn-warning" type="button" @onclick="UpdateStatusAsync">Cập nhật</button>
+                </div>
+            </div>
+        }
+
+        <h3 class="h6 fw-bold">Phản hồi</h3>
+        @if (selectedTicket.Replies.Count == 0)
+        {
+            <div class="text-muted mb-3">Chưa có phản hồi.</div>
+        }
+        else
+        {
+            <div class="vstack gap-2 mb-3">
+                @foreach (var reply in selectedTicket.Replies)
+                {
+                    <div class="border rounded p-3">
+                        <div class="d-flex justify-content-between gap-2">
+                            <strong>@reply.UserName</strong>
+                            <span class="text-muted small">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div class="mt-2">@reply.Message</div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (selectedTicket.Status != "Closed")
+        {
+            <EditForm Model="@replyForm" OnValidSubmit="ReplyTicketAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <label class="form-label">Nội dung phản hồi</label>
+                <InputTextArea class="form-control" rows="4" @bind-Value="replyForm.Message" />
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-primary" type="submit" disabled="@isReplying">
+                        @(isReplying ? "Đang gửi..." : "Gửi phản hồi")
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" @onclick="ClearSelectedTicket">Đóng chi tiết</button>
+                </div>
+            </EditForm>
+        }
+        else
+        {
+            <button class="btn btn-outline-secondary" type="button" @onclick="ClearSelectedTicket">Đóng chi tiết</button>
+        }
+    </div>
+}
+
+@code {
+    private List<SupportTicketDto> tickets = [];
+    private SupportTicketDto? selectedTicket;
+    private CreateTicketDto createForm = new();
+    private ReplyTicketDto replyForm = new();
+    private string selectedStatus = "Open";
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool isReplying;
+    private string? successMessage;
+    private string? errorMessage;
+
+    private bool IsCustomer => AuthState.CurrentRole == "Customer";
+    private bool IsSeller => AuthState.CurrentRole == "Seller";
+    private bool IsAdmin => AuthState.CurrentRole == "Admin";
+    private bool CanUpdateStatus => IsSeller || IsAdmin;
+
+    private string PageTitleText => IsCustomer ? "Phiếu hỗ trợ của tôi" : "Hỗ trợ khách hàng";
+    private string PageSubtitleText => IsCustomer
+        ? "Tạo và theo dõi yêu cầu hỗ trợ của bạn."
+        : "Theo dõi, phản hồi và cập nhật trạng thái phiếu hỗ trợ.";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadTicketsAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadTicketsAsync(bool clearMessages = true)
+    {
+        isLoading = true;
+        if (clearMessages)
+        {
+            ClearMessages();
+        }
+
+        try
+        {
+            ApiResponse<List<SupportTicketDto>>? response = AuthState.CurrentRole switch
+            {
+                "Customer" => await TicketApi.GetMyTicketsAsync(),
+                "Seller" => await TicketApi.GetSellerTicketsAsync(),
+                "Admin" => await TicketApi.GetAllTicketsAsync(),
+                _ => null
+            };
+
+            if (response?.Success == true)
+            {
+                tickets = response.Data ?? [];
+                await RefreshSelectedTicketAsync();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task ReloadTicketsAsync()
+    {
+        return LoadTicketsAsync();
+    }
+
+    private async Task CreateTicketAsync()
+    {
+        ClearMessages();
+        isSaving = true;
+
+        try
+        {
+            var response = await TicketApi.CreateAsync(createForm);
+
+            if (response?.Success == true)
+            {
+                successMessage = "Gửi phiếu hỗ trợ thành công.";
+                createForm = new CreateTicketDto();
+                await LoadTicketsAsync(false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task SelectTicketAsync(int id)
+    {
+        ClearMessages();
+
+        try
+        {
+            var response = await TicketApi.GetByIdAsync(id);
+
+            if (response?.Success == true && response.Data is not null)
+            {
+                selectedTicket = response.Data;
+                selectedStatus = selectedTicket.Status;
+                replyForm = new ReplyTicketDto();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+    }
+
+    private async Task ReplyTicketAsync()
+    {
+        if (selectedTicket is null)
+        {
+            return;
+        }
+
+        ClearMessages();
+        isReplying = true;
+
+        try
+        {
+            var response = await TicketApi.ReplyAsync(selectedTicket.Id, replyForm);
+
+            if (response?.Success == true && response.Data is not null)
+            {
+                selectedTicket = response.Data;
+                selectedStatus = selectedTicket.Status;
+                replyForm = new ReplyTicketDto();
+                successMessage = "Gửi phản hồi thành công.";
+                await LoadTicketsAsync(false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isReplying = false;
+        }
+    }
+
+    private async Task UpdateStatusAsync()
+    {
+        if (selectedTicket is null)
+        {
+            return;
+        }
+
+        ClearMessages();
+
+        try
+        {
+            var response = await TicketApi.UpdateStatusAsync(selectedTicket.Id, selectedStatus);
+
+            if (response?.Success == true && response.Data is not null)
+            {
+                selectedTicket = response.Data;
+                selectedStatus = selectedTicket.Status;
+                successMessage = "Cập nhật trạng thái thành công.";
+                await LoadTicketsAsync(false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+    }
+
+    private async Task CloseTicketAsync(int id)
+    {
+        ClearMessages();
+
+        try
+        {
+            var response = await TicketApi.CloseAsync(id);
+
+            if (response?.Success == true)
+            {
+                successMessage = "Đóng phiếu hỗ trợ thành công.";
+                await LoadTicketsAsync(false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+    }
+
+    private async Task RefreshSelectedTicketAsync()
+    {
+        if (selectedTicket is null)
+        {
+            return;
+        }
+
+        var refreshed = tickets.FirstOrDefault(ticket => ticket.Id == selectedTicket.Id);
+        if (refreshed is null)
+        {
+            selectedTicket = null;
+            return;
+        }
+
+        var response = await TicketApi.GetByIdAsync(refreshed.Id);
+        if (response?.Success == true && response.Data is not null)
+        {
+            selectedTicket = response.Data;
+            selectedStatus = selectedTicket.Status;
+        }
+    }
+
+    private void ClearSelectedTicket()
+    {
+        selectedTicket = null;
+        replyForm = new ReplyTicketDto();
+    }
+
+    private void ClearMessages()
+    {
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private static string GetStatusText(string status)
+    {
+        return status switch
+        {
+            "Open" => "Đang mở",
+            "InProgress" => "Đang xử lý",
+            "Closed" => "Đã đóng",
+            _ => status
+        };
+    }
+
+    private static string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Open" => "text-bg-warning",
+            "InProgress" => "text-bg-info",
+            "Closed" => "text-bg-success",
+            _ => "text-bg-secondary"
+        };
+    }
+}

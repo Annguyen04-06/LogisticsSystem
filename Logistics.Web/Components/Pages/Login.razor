@@ -1,0 +1,94 @@
+@page "/login"
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Đăng nhập</PageTitle>
+
+<div class="auth-page">
+    <div class="modern-card auth-card p-4">
+        <div class="text-center mb-4">
+            <div class="brand-mark mx-auto mb-3 text-white">LS</div>
+            <h1 class="h4 fw-bold">Hệ thống quản lý Logistics</h1>
+            <p class="text-muted mb-0">Đăng nhập để tiếp tục</p>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(successMessage))
+        {
+            <div class="alert alert-success">@successMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <InputText class="form-control" @bind-Value="loginRequest.Email" placeholder="Nhập email" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Mật khẩu</label>
+                <InputText class="form-control" type="password" @bind-Value="loginRequest.Password" placeholder="Nhập mật khẩu" />
+            </div>
+            <button class="btn btn-primary w-100" type="submit" disabled="@isSubmitting">
+                @(isSubmitting ? "Đang đăng nhập..." : "Đăng nhập")
+            </button>
+        </EditForm>
+
+        <div class="text-center mt-3">
+            <a href="register">Chưa có tài khoản? Đăng ký ngay</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly LoginRequest loginRequest = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isSubmitting;
+
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+        successMessage = null;
+        isSubmitting = true;
+
+        try
+        {
+            var response = await AuthService.LoginAsync(loginRequest);
+
+            if (response?.Success == true && response.Data != null)
+            {
+                successMessage = "Đăng nhập thành công.";
+                Navigation.NavigateTo(GetRedirectUrl(response.Data.Role));
+                return;
+            }
+
+            errorMessage = "Đăng nhập thất bại. Vui lòng kiểm tra email hoặc mật khẩu.";
+        }
+        catch
+        {
+            errorMessage = "Đăng nhập thất bại. Vui lòng kiểm tra email hoặc mật khẩu.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private static string GetRedirectUrl(string role)
+    {
+        return role switch
+        {
+            "Admin" => "/admin-dashboard",
+            "Seller" => "/seller-dashboard",
+            "Shipper" => "/shipper-orders",
+            "Customer" => "/products",
+            _ => "/products"
+        };
+    }
+}

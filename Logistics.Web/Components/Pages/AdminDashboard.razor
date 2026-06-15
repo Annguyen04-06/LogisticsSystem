@@ -1,0 +1,192 @@
+@page "/admin/dashboard"
+@page "/admin-dashboard"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject AdminDashboardApiService DashboardApi
+@inject NavigationManager Navigation
+
+<PageTitle>Bảng điều khiển quản trị</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Bảng điều khiển quản trị</h1>
+        <p class="page-subtitle">Theo dõi số liệu vận hành toàn hệ thống.</p>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="modern-card p-4">Đang tải dữ liệu...</div>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (dashboard is not null)
+{
+    <div class="row g-3 mb-4">
+        @StatCard("Tổng người dùng", dashboard.TotalUsers.ToString("N0"), "Tất cả tài khoản")
+        @StatCard("Khách hàng", dashboard.TotalCustomers.ToString("N0"), "Tài khoản khách hàng")
+        @StatCard("Người bán", dashboard.TotalSellers.ToString("N0"), "Tài khoản người bán")
+        @StatCard("Người giao hàng", dashboard.TotalShippers.ToString("N0"), "Tài khoản giao hàng")
+        @StatCard("Tổng sản phẩm", dashboard.TotalProducts.ToString("N0"), "Sản phẩm trong hệ thống")
+        @StatCard("Tổng đơn hàng", dashboard.TotalOrders.ToString("N0"), "Tất cả đơn hàng")
+        @StatCard("Đơn chờ xác nhận", dashboard.PendingOrders.ToString("N0"), "Đang chờ xử lý")
+        @StatCard("Đơn đã xác nhận", dashboard.ConfirmedOrders.ToString("N0"), "Đã được người bán xác nhận")
+        @StatCard("Đơn đang giao", dashboard.ShippingOrders.ToString("N0"), "Đang vận chuyển")
+        @StatCard("Đơn đã giao", dashboard.DeliveredOrders.ToString("N0"), "Đơn hoàn tất")
+        @StatCard("Đơn đã hủy", dashboard.CancelledOrders.ToString("N0"), "Đơn không hoàn tất")
+        @StatCard("Tổng doanh thu", FormatCurrency(dashboard.TotalRevenue), "Chỉ tính đơn đã giao")
+        @StatCard("Phiếu hỗ trợ", dashboard.TotalTickets.ToString("N0"), "Tổng phiếu hỗ trợ")
+        @StatCard("Phiếu đang mở", dashboard.OpenTickets.ToString("N0"), "Cần tiếp tục xử lý")
+        @StatCard("Phiếu đã đóng", dashboard.ClosedTickets.ToString("N0"), "Đã hoàn tất")
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-6">
+            <div class="modern-card table-card">
+                <div class="p-4 pb-2">
+                    <h2 class="h5 fw-bold mb-0">Thống kê đơn hàng theo ngày</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Số đơn</th>
+                                <th>Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (ordersByDate.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in ordersByDate)
+                                {
+                                    <tr>
+                                        <td>@item.Date.ToString("dd/MM/yyyy")</td>
+                                        <td>@item.TotalOrders.ToString("N0")</td>
+                                        <td>@FormatCurrency(item.Revenue)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6">
+            <div class="modern-card table-card">
+                <div class="p-4 pb-2">
+                    <h2 class="h5 fw-bold mb-0">Thống kê đơn hàng theo tháng</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Năm</th>
+                                <th>Tháng</th>
+                                <th>Số đơn</th>
+                                <th>Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (ordersByMonth.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in ordersByMonth)
+                                {
+                                    <tr>
+                                        <td>@item.Year</td>
+                                        <td>@item.Month</td>
+                                        <td>@item.TotalOrders.ToString("N0")</td>
+                                        <td>@FormatCurrency(item.Revenue)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private AdminDashboardDto? dashboard;
+    private List<OrderStatisticsByDateDto> ordersByDate = [];
+    private List<OrderStatisticsByMonthDto> ordersByMonth = [];
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadDashboardAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        try
+        {
+            var dashboardResponse = await DashboardApi.GetDashboardAsync();
+            var dateResponse = await DashboardApi.GetOrdersByDateAsync();
+            var monthResponse = await DashboardApi.GetOrdersByMonthAsync();
+
+            if (dashboardResponse?.Success != true || dashboardResponse.Data is null)
+            {
+                errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+                return;
+            }
+
+            dashboard = dashboardResponse.Data;
+            ordersByDate = dateResponse?.Data ?? [];
+            ordersByMonth = monthResponse?.Data ?? [];
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string FormatCurrency(decimal value)
+    {
+        return $"{value:N0} VND";
+    }
+
+    private static RenderFragment StatCard(string label, string value, string note) => @<div class="col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="stat-label">@label</div>
+            <div class="stat-value">@value</div>
+            <div class="text-muted small">@note</div>
+        </div>
+    </div>;
+}

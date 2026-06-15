@@ -1,0 +1,122 @@
+@page "/seller/dashboard"
+@page "/seller-dashboard"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject SellerDashboardApiService SellerDashboardApiService
+@inject NavigationManager Navigation
+
+<PageTitle>Bảng điều khiển người bán</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Bảng điều khiển người bán</h1>
+        <p class="page-subtitle">Thống kê sản phẩm, đơn hàng, doanh thu và độ uy tín.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="modern-card p-4 text-center text-muted">Đang tải bảng điều khiển...</div>
+}
+else if (dashboard != null)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Tổng sản phẩm</div>
+                <div class="stat-value">@dashboard.TotalProducts</div>
+                <div class="text-muted small">@dashboard.SellerName</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Tổng đơn hàng</div>
+                <div class="stat-value">@dashboard.TotalOrders</div>
+                <div class="text-muted small">Tất cả trạng thái</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Doanh thu</div>
+                <div class="stat-value">@dashboard.TotalRevenue.ToString("N0")</div>
+                <div class="text-muted small">Đơn đã giao</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Độ uy tín</div>
+                <div class="stat-value">@dashboard.TrustPercent.ToString("N1")%</div>
+                <div class="text-muted small">@dashboard.TotalLikes thích / @dashboard.TotalDislikes không thích</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modern-card p-4">
+        <h2 class="h5 fw-bold mb-3">Trạng thái đơn hàng</h2>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="status-badge status-pending">Chờ xác nhận @dashboard.PendingOrders</span>
+            <span class="status-badge status-confirmed">Đã xác nhận @dashboard.ConfirmedOrders</span>
+            <span class="status-badge status-shipping">Đang giao @dashboard.ShippingOrders</span>
+            <span class="status-badge status-delivered">Đã giao @dashboard.DeliveredOrders</span>
+            <span class="status-badge status-cancelled">Đã hủy @dashboard.CancelledOrders</span>
+        </div>
+    </div>
+}
+
+@code {
+    private SellerDashboardDto? dashboard;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadDashboardAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await SellerDashboardApiService.GetDashboardAsync();
+
+            if (response?.Success == true)
+            {
+                dashboard = response.Data;
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Không thể tải bảng điều khiển người bán.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Không thể tải bảng điều khiển người bán.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

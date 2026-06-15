@@ -1,0 +1,20 @@
+html,
+body {
+    background: #f5f7fb;
+    color: #172033;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+a {
+    color: #2557d6;
+}
+
+h1:focus {
+    outline: none;
+}
+
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(37, 87, 214, 0.18);
+}

@@ -1,0 +1,265 @@
+@page "/seller/products"
+@page "/seller-products"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject SellerProductApiService SellerProductApiService
+@inject CategoryApiService CategoryApiService
+@inject NavigationManager Navigation
+
+<PageTitle>Quản lý sản phẩm</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Quản lý sản phẩm</h1>
+        <p class="page-subtitle">Thêm, cập nhật và ngừng bán sản phẩm của người bán.</p>
+    </div>
+    <button class="btn btn-primary" @onclick="StartCreate">Tạo sản phẩm</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="modern-card p-4 mb-3">
+    <h2 class="h5 fw-bold mb-3">@(editingProductId.HasValue ? "Cập nhật sản phẩm" : "Tạo sản phẩm")</h2>
+    <EditForm Model="@productForm" OnValidSubmit="SaveProductAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Tên sản phẩm</label>
+                <InputText class="form-control" @bind-Value="productForm.Name" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Danh mục</label>
+                <InputSelect class="form-select" @bind-Value="productForm.CategoryId">
+                    <option value="0">Chọn danh mục</option>
+                    @foreach (var category in categories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Mô tả</label>
+                <InputTextArea class="form-control" rows="3" @bind-Value="productForm.Description" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Giá</label>
+                <InputNumber class="form-control" @bind-Value="productForm.Price" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Số lượng</label>
+                <InputNumber class="form-control" @bind-Value="productForm.Quantity" />
+            </div>
+            @if (editingProductId.HasValue)
+            {
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" @bind-Value="productForm.IsActive" />
+                        <label class="form-check-label">Đang bán</label>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-success" type="submit" disabled="@isSaving">
+                @(isSaving ? "Đang lưu..." : "Lưu")
+            </button>
+            @if (editingProductId.HasValue)
+            {
+                <button class="btn btn-outline-secondary" type="button" @onclick="StartCreate">Hủy</button>
+            }
+        </div>
+    </EditForm>
+</div>
+
+@if (isLoading)
+{
+    <div class="modern-card p-4 text-center text-muted">Đang tải sản phẩm...</div>
+}
+else
+{
+    <div class="modern-card table-card">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Mã sản phẩm</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Danh mục</th>
+                    <th>Giá</th>
+                    <th>Số lượng</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (products.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">Chưa có sản phẩm nào.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var product in products)
+                    {
+                        <tr>
+                            <td>#@product.Id</td>
+                            <td>@product.Name</td>
+                            <td>@product.CategoryName</td>
+                            <td>@product.Price.ToString("N0") VND</td>
+                            <td>@product.Quantity</td>
+                            <td>
+                                <span class="badge @(product.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                    @(product.IsActive ? "Đang bán" : "Ngừng bán")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(product)">Sửa</button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteProductAsync(product.Id)">Xóa</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<ProductDto> products = [];
+    private List<CategoryDto> categories = [];
+    private UpdateProductDto productForm = new();
+    private int? editingProductId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadInitialDataAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadInitialDataAsync()
+    {
+        isLoading = true;
+        var categoriesResponse = await CategoryApiService.GetCategoriesAsync();
+        categories = categoriesResponse?.Data ?? [];
+        await LoadProductsAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        var response = await SellerProductApiService.GetMyProductsAsync();
+        products = response?.Data ?? [];
+    }
+
+    private void StartCreate()
+    {
+        editingProductId = null;
+        productForm = new UpdateProductDto { IsActive = true };
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private void StartEdit(ProductDto product)
+    {
+        editingProductId = product.Id;
+        productForm = new UpdateProductDto
+        {
+            Name = product.Name,
+            Description = product.Description,
+            Price = product.Price,
+            Quantity = product.Quantity,
+            CategoryId = product.CategoryId,
+            IsActive = product.IsActive
+        };
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private async Task SaveProductAsync()
+    {
+        isSaving = true;
+        successMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            if (editingProductId.HasValue)
+            {
+                var updateResponse = await SellerProductApiService.UpdateAsync(editingProductId.Value, productForm);
+                if (updateResponse?.Success != true)
+                {
+                    errorMessage = updateResponse?.Message ?? "Không thể cập nhật sản phẩm.";
+                    return;
+                }
+
+                successMessage = "Cập nhật sản phẩm thành công.";
+            }
+            else
+            {
+                var createResponse = await SellerProductApiService.CreateAsync(productForm);
+                if (createResponse?.Success != true)
+                {
+                    errorMessage = createResponse?.Message ?? "Không thể tạo sản phẩm.";
+                    return;
+                }
+
+                successMessage = "Tạo sản phẩm thành công.";
+            }
+
+            StartCreate();
+            await LoadProductsAsync();
+        }
+        catch
+        {
+            errorMessage = "Không thể lưu sản phẩm.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteProductAsync(int productId)
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        var response = await SellerProductApiService.DeleteAsync(productId);
+        if (response?.Success == true)
+        {
+            successMessage = "Đã xóa sản phẩm.";
+            await LoadProductsAsync();
+            return;
+        }
+
+        errorMessage = response?.Message ?? "Không thể xóa sản phẩm.";
+    }
+}

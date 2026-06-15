@@ -1,0 +1,143 @@
+@page "/shipper/history"
+@page "/delivery-history"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject DeliveryApiService DeliveryApiService
+@inject NavigationManager Navigation
+
+<PageTitle>Lịch sử giao hàng</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Lịch sử giao hàng</h1>
+        <p class="page-subtitle">Các đơn giao hàng đã hoàn tất.</p>
+    </div>
+    <button class="btn btn-outline-primary" @onclick="LoadHistoryAsync">Tải lại</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="modern-card p-4 text-center text-muted">Đang tải dữ liệu...</div>
+}
+else
+{
+    <div class="modern-card table-card">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Mã giao hàng</th>
+                    <th>Mã đơn</th>
+                    <th>Người giao hàng</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày nhận đơn</th>
+                    <th>Ngày giao xong</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (deliveries.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Chưa có lịch sử giao hàng.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var delivery in deliveries)
+                    {
+                        <tr>
+                            <td>#@delivery.Id</td>
+                            <td>#@delivery.OrderId</td>
+                            <td>@delivery.ShipperName</td>
+                            <td><span class="status-badge @GetStatusBadgeClass(delivery.Status)">@GetVietnameseStatus(delivery.Status)</span></td>
+                            <td>@delivery.AssignedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@(delivery.DeliveredAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<DeliveryDto> deliveries = [];
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadHistoryAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await DeliveryApiService.GetDeliveryHistoryAsync();
+            if (response?.Success == true)
+            {
+                deliveries = response.Data ?? [];
+            }
+            else
+            {
+                errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string GetVietnameseStatus(string status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ xác nhận",
+            "Confirmed" => "Đã xác nhận",
+            "Shipping" => "Đang giao",
+            "Delivered" => "Đã giao",
+            "Cancelled" => "Đã hủy",
+            _ => status
+        };
+    }
+
+    private static string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "status-pending",
+            "Confirmed" => "status-confirmed",
+            "Shipping" => "status-shipping",
+            "Delivered" => "status-delivered",
+            "Cancelled" => "status-cancelled",
+            _ => "text-bg-secondary"
+        };
+    }
+}

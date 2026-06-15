@@ -1,0 +1,52 @@
+@page "/admin/users"
+@page "/admin-users"
+
+<PageTitle>Người dùng</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Người dùng</h1>
+        <p class="page-subtitle">Duyệt người bán và quản lý trạng thái tài khoản.</p>
+    </div>
+</div>
+
+<div class="modern-card table-card">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Họ và tên</th>
+                <th>Email</th>
+                <th>Vai trò</th>
+                <th>Đã duyệt</th>
+                <th>Đang hoạt động</th>
+                <th class="text-end">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Quản trị viên</td>
+                <td>admin@gmail.com</td>
+                <td><span class="badge text-bg-danger">Quản trị viên</span></td>
+                <td>Có</td>
+                <td>Có</td>
+                <td class="text-end"><button class="btn btn-sm btn-warning">Vô hiệu hóa</button></td>
+            </tr>
+            <tr>
+                <td>Người bán mẫu</td>
+                <td>seller@gmail.com</td>
+                <td><span class="badge text-bg-success">Người bán</span></td>
+                <td>Có</td>
+                <td>Có</td>
+                <td class="text-end"><button class="btn btn-sm btn-primary">Xem chi tiết</button></td>
+            </tr>
+            <tr>
+                <td>Người giao hàng mẫu</td>
+                <td>shipper@gmail.com</td>
+                <td><span class="badge text-bg-info">Người giao hàng</span></td>
+                <td>Có</td>
+                <td>Có</td>
+                <td class="text-end"><button class="btn btn-sm btn-warning">Vô hiệu hóa</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,248 @@
+@page "/cart"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject CartApiService CartApiService
+@inject OrderApiService OrderApiService
+@inject NavigationManager Navigation
+
+<PageTitle>Giỏ hàng</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Giỏ hàng của tôi</h1>
+        <p class="page-subtitle">Kiểm tra sản phẩm trong giỏ trước khi đặt hàng.</p>
+    </div>
+    <button class="btn btn-outline-danger" @onclick="ClearCartAsync" disabled="@(cart.Items.Count == 0)">Xóa giỏ hàng</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success">
+        @successMessage
+        @if (orderCreated)
+        {
+            <a class="alert-link ms-2" href="my-orders">Xem đơn hàng</a>
+        }
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="modern-card p-4 text-center text-muted">Đang tải giỏ hàng...</div>
+}
+else
+{
+    <div class="modern-card table-card">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Giá</th>
+                    <th>Số lượng</th>
+                    <th>Thành tiền</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (cart.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">Giỏ hàng đang trống.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in cart.Items)
+                    {
+                        <tr>
+                            <td>@item.ProductName</td>
+                            <td>@item.Price.ToString("N0") VND</td>
+                            <td>
+                                <input class="form-control form-control-sm" type="number" min="1"
+                                       style="max-width: 90px" @bind="item.Quantity" />
+                            </td>
+                            <td class="fw-semibold">@item.TotalPrice.ToString("N0") VND</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-warning me-1" @onclick="() => UpdateCartItemAsync(item)">Cập nhật</button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => RemoveCartItemAsync(item.Id)">Xóa</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modern-card p-4 mt-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted">Tổng tiền</span>
+            <span class="h4 fw-bold mb-0">@cart.TotalAmount.ToString("N0") VND</span>
+        </div>
+    </div>
+
+    <div class="modern-card p-4 mt-3">
+        <h2 class="h5 fw-bold mb-3">Thông tin đặt hàng</h2>
+        <EditForm Model="@createOrder" OnValidSubmit="CreateOrderAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Địa chỉ giao hàng</label>
+                    <InputText class="form-control" @bind-Value="createOrder.ShippingAddress" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Mã giảm giá</label>
+                    <InputText class="form-control" @bind-Value="createOrder.CouponCode" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phương thức thanh toán</label>
+                    <InputSelect class="form-select" @bind-Value="createOrder.PaymentMethod">
+                        <option value="COD">Thanh toán khi nhận hàng</option>
+                        <option value="Wallet">Ví điện tử</option>
+                        <option value="BankingDemo">Chuyển khoản giả lập</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Ghi chú</label>
+                    <InputText class="form-control" @bind-Value="createOrder.Note" />
+                </div>
+            </div>
+
+            <button class="btn btn-success mt-4" type="submit" disabled="@(cart.Items.Count == 0 || isSubmittingOrder)">
+                @(isSubmittingOrder ? "Đang đặt hàng..." : "Đặt hàng")
+            </button>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private CartDto cart = new();
+    private CreateOrderDto createOrder = new();
+    private bool isLoading = true;
+    private bool isSubmittingOrder;
+    private bool orderCreated;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadCartAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadCartAsync()
+    {
+        isLoading = true;
+        var response = await CartApiService.GetMyCartAsync();
+        cart = response?.Data ?? new CartDto();
+        isLoading = false;
+    }
+
+    private async Task UpdateCartItemAsync(CartItemDto item)
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        if (item.Quantity <= 0)
+        {
+            errorMessage = "Số lượng phải lớn hơn 0.";
+            return;
+        }
+
+        var response = await CartApiService.UpdateCartItemAsync(item.Id, new UpdateCartItemDto { Quantity = item.Quantity });
+
+        if (response?.Success == true && response.Data != null)
+        {
+            cart = response.Data;
+            successMessage = "Đã cập nhật giỏ hàng.";
+            return;
+        }
+
+        errorMessage = response?.Message ?? "Không thể cập nhật giỏ hàng.";
+    }
+
+    private async Task RemoveCartItemAsync(int cartItemId)
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        var response = await CartApiService.RemoveCartItemAsync(cartItemId);
+
+        if (response?.Success == true && response.Data != null)
+        {
+            cart = response.Data;
+            successMessage = "Đã xóa sản phẩm khỏi giỏ hàng.";
+            return;
+        }
+
+        errorMessage = response?.Message ?? "Không thể xóa sản phẩm.";
+    }
+
+    private async Task ClearCartAsync()
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        var response = await CartApiService.ClearCartAsync();
+
+        if (response?.Success == true && response.Data != null)
+        {
+            cart = response.Data;
+            successMessage = "Đã xóa giỏ hàng.";
+            return;
+        }
+
+        errorMessage = response?.Message ?? "Không thể xóa giỏ hàng.";
+    }
+
+    private async Task CreateOrderAsync()
+    {
+        successMessage = null;
+        errorMessage = null;
+        orderCreated = false;
+        isSubmittingOrder = true;
+
+        try
+        {
+            var response = await OrderApiService.CreateOrderAsync(createOrder);
+
+            if (response?.Success == true)
+            {
+                successMessage = "Đặt hàng thành công";
+                orderCreated = true;
+                createOrder = new CreateOrderDto();
+                await LoadCartAsync();
+                return;
+            }
+
+            errorMessage = response?.Message ?? "Không thể đặt hàng.";
+        }
+        catch
+        {
+            errorMessage = "Không thể đặt hàng.";
+        }
+        finally
+        {
+            isSubmittingOrder = false;
+        }
+    }
+}

@@ -1,0 +1,215 @@
+@page "/seller/orders"
+@page "/seller-orders"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject SellerOrderApiService SellerOrderApiService
+@inject DeliveryApiService DeliveryApiService
+@inject NavigationManager Navigation
+
+<PageTitle>Đơn hàng người bán</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Đơn hàng người bán</h1>
+        <p class="page-subtitle">Xác nhận đơn hàng và gán người giao hàng cho đơn đã xác nhận.</p>
+    </div>
+    <button class="btn btn-outline-primary" @onclick="LoadOrdersAsync">Tải lại</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="alert alert-info">
+    Mã người giao hàng: nhập thủ công nếu chưa có API danh sách người giao hàng. Tài khoản seed: shipperId = 4.
+</div>
+
+@if (isLoading)
+{
+    <div class="modern-card p-4 text-center text-muted">Đang tải đơn hàng...</div>
+}
+else
+{
+    <div class="modern-card table-card">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Tổng tiền</th>
+                    <th>Thành tiền</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th style="width: 170px">Mã người giao hàng</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (orders.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng cần xử lý.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var order in orders)
+                    {
+                        <tr>
+                            <td>#@order.Id</td>
+                            <td>@order.CustomerName</td>
+                            <td>@order.TotalAmount.ToString("N0") VND</td>
+                            <td>@order.FinalAmount.ToString("N0") VND</td>
+                            <td><span class="status-badge @GetStatusBadgeClass(order.Status)">@GetVietnameseStatus(order.Status)</span></td>
+                            <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                <input class="form-control form-control-sm" type="number"
+                                       @bind="shipperIds[order.Id]" placeholder="4" />
+                            </td>
+                            <td class="text-end">
+                                @if (order.Status == "Pending")
+                                {
+                                    <button class="btn btn-sm btn-success me-1" @onclick="() => ConfirmOrderAsync(order.Id)">
+                                        Xác nhận đơn
+                                    </button>
+                                }
+                                @if (order.Status == "Confirmed")
+                                {
+                                    <button class="btn btn-sm btn-primary" @onclick="() => AssignShipperAsync(order.Id)">
+                                        Gán người giao hàng
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<OrderDto> orders = [];
+    private Dictionary<int, int> shipperIds = [];
+    private bool isLoading = true;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadOrdersAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        isLoading = true;
+        successMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            var response = await SellerOrderApiService.GetSellerOrdersAsync();
+            orders = response?.Data ?? [];
+
+            foreach (var order in orders)
+            {
+                if (!shipperIds.ContainsKey(order.Id))
+                {
+                    shipperIds[order.Id] = 4;
+                }
+            }
+        }
+        catch
+        {
+            errorMessage = "Không thể tải đơn hàng người bán.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ConfirmOrderAsync(int orderId)
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        var response = await DeliveryApiService.ConfirmOrderAsync(orderId);
+        if (response?.Success == true)
+        {
+            successMessage = "Xác nhận đơn thành công.";
+            await LoadOrdersAsync();
+            return;
+        }
+
+        errorMessage = response?.Message ?? "Không thể xác nhận đơn.";
+    }
+
+    private async Task AssignShipperAsync(int orderId)
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        if (!shipperIds.TryGetValue(orderId, out var shipperId) || shipperId <= 0)
+        {
+            errorMessage = "Vui lòng nhập mã người giao hàng hợp lệ.";
+            return;
+        }
+
+        var response = await DeliveryApiService.AssignShipperAsync(orderId, new AssignShipperDto { ShipperId = shipperId });
+        if (response?.Success == true)
+        {
+            successMessage = "Gán người giao hàng thành công.";
+            await LoadOrdersAsync();
+            return;
+        }
+
+        errorMessage = response?.Message ?? "Không thể gán người giao hàng.";
+    }
+
+    private static string GetVietnameseStatus(string status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ xác nhận",
+            "Confirmed" => "Đã xác nhận",
+            "Shipping" => "Đang giao",
+            "Delivered" => "Đã giao",
+            "Cancelled" => "Đã hủy",
+            _ => status
+        };
+    }
+
+    private static string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "status-pending",
+            "Confirmed" => "status-confirmed",
+            "Shipping" => "status-shipping",
+            "Delivered" => "status-delivered",
+            "Cancelled" => "status-cancelled",
+            _ => "text-bg-secondary"
+        };
+    }
+}

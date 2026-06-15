@@ -1,0 +1,352 @@
+@page "/admin/coupons"
+@page "/admin-coupons"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject CouponApiService CouponApi
+@inject NavigationManager Navigation
+
+<PageTitle>Mã giảm giá</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Mã giảm giá</h1>
+        <p class="page-subtitle">Tạo và quản lý các chương trình giảm giá.</p>
+    </div>
+    <button class="btn btn-primary" type="button" @onclick="StartCreate">Tạo mã giảm giá</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="row g-3">
+    <div class="col-xl-4">
+        <div class="modern-card p-4">
+            <h2 class="h5 fw-bold mb-3">@(editingCouponId.HasValue ? "Sửa mã giảm giá" : "Thêm mã giảm giá")</h2>
+
+            <EditForm Model="@couponForm" OnValidSubmit="SaveCouponAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <label class="form-label">Mã giảm giá</label>
+                <InputText class="form-control" @bind-Value="couponForm.Code" disabled="@editingCouponId.HasValue" />
+
+                <label class="form-label mt-3">Loại giảm</label>
+                <InputSelect class="form-select" @bind-Value="couponForm.DiscountType">
+                    <option value="Percent">Phần trăm</option>
+                    <option value="FixedAmount">Số tiền cố định</option>
+                </InputSelect>
+
+                <label class="form-label mt-3">Giá trị giảm</label>
+                <InputNumber class="form-control" @bind-Value="couponForm.DiscountValue" />
+
+                <label class="form-label mt-3">Đơn tối thiểu</label>
+                <InputNumber class="form-control" @bind-Value="couponForm.MinOrderAmount" />
+
+                <label class="form-label mt-3">Ngày bắt đầu</label>
+                <InputDate class="form-control" @bind-Value="couponForm.StartDate" />
+
+                <label class="form-label mt-3">Ngày kết thúc</label>
+                <InputDate class="form-control" @bind-Value="couponForm.EndDate" />
+
+                <label class="form-label mt-3">Số lượt dùng</label>
+                <InputNumber class="form-control" @bind-Value="couponForm.UsageLimit" />
+
+                <div class="form-check form-switch mt-3">
+                    <InputCheckbox class="form-check-input" @bind-Value="couponForm.IsActive" />
+                    <label class="form-check-label">Trạng thái</label>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-success" type="submit" disabled="@isSaving">
+                        @(isSaving ? "Đang lưu..." : "Lưu")
+                    </button>
+                    @if (editingCouponId.HasValue)
+                    {
+                        <button class="btn btn-outline-secondary" type="button" @onclick="StartCreate">Hủy</button>
+                    }
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="modern-card table-card">
+            @if (isLoading)
+            {
+                <div class="p-4">Đang tải dữ liệu...</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mã giảm giá</th>
+                                <th>Loại giảm</th>
+                                <th>Giá trị</th>
+                                <th>Đơn tối thiểu</th>
+                                <th>Ngày bắt đầu</th>
+                                <th>Ngày kết thúc</th>
+                                <th>Số lượt dùng</th>
+                                <th>Đã dùng</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (coupons.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var coupon in coupons)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@coupon.Code</td>
+                                        <td>@DisplayDiscountType(coupon.DiscountType)</td>
+                                        <td>@DisplayDiscountValue(coupon)</td>
+                                        <td>@FormatCurrency(coupon.MinOrderAmount)</td>
+                                        <td>@coupon.StartDate.ToString("dd/MM/yyyy")</td>
+                                        <td>@coupon.EndDate.ToString("dd/MM/yyyy")</td>
+                                        <td>@coupon.UsageLimit.ToString("N0")</td>
+                                        <td>@coupon.UsedCount.ToString("N0")</td>
+                                        <td>
+                                            <span class="badge @(coupon.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                                @(coupon.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-warning me-1" type="button" @onclick="() => StartEdit(coupon)">Sửa</button>
+                                            <button class="btn btn-sm btn-danger" type="button" @onclick="() => DeleteCouponAsync(coupon.Id)">Xóa</button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CouponDto> coupons = [];
+    private CreateCouponDto couponForm = CreateDefaultForm();
+    private int? editingCouponId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadCouponsAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadCouponsAsync()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await CouponApi.GetCouponsAsync();
+
+            if (response?.Success == true)
+            {
+                coupons = response.Data ?? [];
+                errorMessage = null;
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveCouponAsync()
+    {
+        ClearMessages();
+
+        if (!ValidateForm())
+        {
+            return;
+        }
+
+        try
+        {
+            isSaving = true;
+            ApiResponse<CouponDto>? response;
+
+            if (editingCouponId.HasValue)
+            {
+                var request = new UpdateCouponDto
+                {
+                    DiscountType = couponForm.DiscountType,
+                    DiscountValue = couponForm.DiscountValue,
+                    MinOrderAmount = couponForm.MinOrderAmount,
+                    StartDate = couponForm.StartDate,
+                    EndDate = couponForm.EndDate,
+                    UsageLimit = couponForm.UsageLimit,
+                    IsActive = couponForm.IsActive
+                };
+
+                response = await CouponApi.UpdateAsync(editingCouponId.Value, request);
+            }
+            else
+            {
+                response = await CouponApi.CreateAsync(couponForm);
+            }
+
+            if (response?.Success == true)
+            {
+                successMessage = editingCouponId.HasValue ? "Cập nhật mã giảm giá thành công." : "Tạo mã giảm giá thành công.";
+                StartCreate();
+                await LoadCouponsAsync();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteCouponAsync(int id)
+    {
+        ClearMessages();
+
+        try
+        {
+            var response = await CouponApi.DeleteAsync(id);
+
+            if (response?.Success == true)
+            {
+                successMessage = "Xóa mã giảm giá thành công.";
+                await LoadCouponsAsync();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+    }
+
+    private void StartCreate()
+    {
+        editingCouponId = null;
+        couponForm = CreateDefaultForm();
+        ClearMessages();
+    }
+
+    private void StartEdit(CouponDto coupon)
+    {
+        editingCouponId = coupon.Id;
+        couponForm = new CreateCouponDto
+        {
+            Code = coupon.Code,
+            DiscountType = coupon.DiscountType,
+            DiscountValue = coupon.DiscountValue,
+            MinOrderAmount = coupon.MinOrderAmount,
+            StartDate = coupon.StartDate,
+            EndDate = coupon.EndDate,
+            UsageLimit = coupon.UsageLimit,
+            IsActive = coupon.IsActive
+        };
+        ClearMessages();
+    }
+
+    private bool ValidateForm()
+    {
+        if (couponForm.EndDate <= couponForm.StartDate)
+        {
+            errorMessage = "Ngày kết thúc phải lớn hơn ngày bắt đầu.";
+            return false;
+        }
+
+        if (couponForm.DiscountType == "Percent" && couponForm.DiscountValue > 100)
+        {
+            errorMessage = "Giá trị giảm theo phần trăm không được lớn hơn 100.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ClearMessages()
+    {
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private static CreateCouponDto CreateDefaultForm()
+    {
+        return new CreateCouponDto
+        {
+            DiscountType = "Percent",
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddDays(30),
+            UsageLimit = 1,
+            IsActive = true
+        };
+    }
+
+    private static string DisplayDiscountType(string discountType)
+    {
+        return discountType == "FixedAmount" ? "Số tiền cố định" : "Phần trăm";
+    }
+
+    private static string DisplayDiscountValue(CouponDto coupon)
+    {
+        return coupon.DiscountType == "Percent"
+            ? $"{coupon.DiscountValue:N0}%"
+            : FormatCurrency(coupon.DiscountValue);
+    }
+
+    private static string FormatCurrency(decimal value)
+    {
+        return $"{value:N0} VND";
+    }
+}

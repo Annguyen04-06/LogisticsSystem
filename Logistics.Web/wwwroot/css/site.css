@@ -1,0 +1,235 @@
+.app-shell {
+    min-height: 100vh;
+    background: #f5f7fb;
+}
+
+.app-sidebar {
+    background: linear-gradient(180deg, #0b1736 0%, #12275c 100%);
+    color: #fff;
+    min-height: auto;
+    padding: 1rem;
+}
+
+.app-main {
+    min-width: 0;
+}
+
+.topbar {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid #e5eaf3;
+    display: flex;
+    justify-content: space-between;
+    min-height: 72px;
+    padding: 1rem 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.main-content {
+    padding: 1.5rem;
+}
+
+.sidebar-brand {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.brand-mark {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 0.75rem;
+    display: flex;
+    font-weight: 800;
+    height: 42px;
+    justify-content: center;
+    width: 42px;
+}
+
+.brand-title {
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.brand-subtitle {
+    color: #a9b8db;
+    font-size: 0.78rem;
+}
+
+.sidebar-nav {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.nav-section {
+    color: #8ea1cc;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin: 1rem 0 0.3rem;
+    text-transform: uppercase;
+}
+
+.sidebar-nav .nav-link {
+    border-radius: 0.55rem;
+    color: #dce5fb;
+    font-weight: 600;
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+    width: 100%;
+}
+
+.sidebar-nav .nav-link:hover,
+.sidebar-nav .nav-link.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.nav-button {
+    background: transparent;
+    border: 0;
+}
+
+.page-header {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.page-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.page-subtitle {
+    color: #667085;
+    margin: 0.25rem 0 0;
+}
+
+.modern-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 30px rgba(31, 45, 75, 0.07);
+}
+
+.stat-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 24px rgba(31, 45, 75, 0.06);
+    padding: 1rem;
+}
+
+.stat-label {
+    color: #6b7280;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    color: #111827;
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-top: 0.35rem;
+}
+
+.table-card {
+    overflow: hidden;
+}
+
+.table-card .table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background: #f8fafc;
+    color: #475467;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+}
+
+.status-badge {
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.65rem;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #9a6700;
+}
+
+.status-confirmed {
+    background: #cff4fc;
+    color: #087990;
+}
+
+.status-shipping {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-delivered {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #842029;
+}
+
+.auth-page {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: calc(100vh - 120px);
+}
+
+.auth-card {
+    max-width: 440px;
+    width: 100%;
+}
+
+@media (min-width: 992px) {
+    .app-shell {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+    }
+
+    .app-sidebar {
+        height: 100vh;
+        overflow-y: auto;
+        position: sticky;
+        top: 0;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .main-content {
+        padding: 1rem;
+    }
+
+    .sidebar-nav {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .nav-section {
+        grid-column: 1 / -1;
+    }
+}

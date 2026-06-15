@@ -1,0 +1,81 @@
+@implements IDisposable
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject NavigationManager Navigation
+
+<div class="sidebar-brand">
+    <div class="brand-mark">LS</div>
+    <div>
+        <div class="brand-title">Logistics</div>
+        <div class="brand-subtitle">Quản lý</div>
+    </div>
+</div>
+
+<input type="checkbox" title="Menu điều hướng" class="nav-toggle" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.nav-toggle')?.click()">
+    <nav class="sidebar-nav">
+        @if (!AuthState.IsAuthenticated)
+        {
+            <div class="nav-section">Tài khoản</div>
+            <NavLink class="nav-link" href="login">Đăng nhập</NavLink>
+            <NavLink class="nav-link" href="register">Đăng ký</NavLink>
+            <NavLink class="nav-link" href="products">Sản phẩm</NavLink>
+        }
+        else if (AuthState.CurrentRole == "Customer")
+        {
+            <div class="nav-section">Khách hàng</div>
+            <NavLink class="nav-link" href="products">Sản phẩm</NavLink>
+            <NavLink class="nav-link" href="cart">Giỏ hàng</NavLink>
+            <NavLink class="nav-link" href="my-orders">Đơn hàng của tôi</NavLink>
+            <NavLink class="nav-link" href="payments">Thanh toán</NavLink>
+            <NavLink class="nav-link" href="my-tickets">Hỗ trợ khách hàng</NavLink>
+            <button class="nav-link nav-button" type="button" @onclick="LogoutAsync">Đăng xuất</button>
+        }
+        else if (AuthState.CurrentRole == "Seller")
+        {
+            <div class="nav-section">Người bán</div>
+            <NavLink class="nav-link" href="seller-dashboard">Bảng điều khiển người bán</NavLink>
+            <NavLink class="nav-link" href="seller-products">Quản lý sản phẩm</NavLink>
+            <NavLink class="nav-link" href="seller-orders">Đơn hàng người bán</NavLink>
+            <NavLink class="nav-link" href="tickets">Hỗ trợ khách hàng</NavLink>
+            <NavLink class="nav-link" href="admin-reports">Báo cáo</NavLink>
+            <button class="nav-link nav-button" type="button" @onclick="LogoutAsync">Đăng xuất</button>
+        }
+        else if (AuthState.CurrentRole == "Shipper")
+        {
+            <div class="nav-section">Người giao hàng</div>
+            <NavLink class="nav-link" href="shipper-orders">Đơn cần giao</NavLink>
+            <NavLink class="nav-link" href="delivery-history">Lịch sử giao hàng</NavLink>
+            <button class="nav-link nav-button" type="button" @onclick="LogoutAsync">Đăng xuất</button>
+        }
+        else if (AuthState.CurrentRole == "Admin")
+        {
+            <div class="nav-section">Quản trị viên</div>
+            <NavLink class="nav-link" href="admin-dashboard">Bảng điều khiển quản trị</NavLink>
+            <NavLink class="nav-link" href="admin-users">Người dùng</NavLink>
+            <NavLink class="nav-link" href="admin-coupons">Mã giảm giá</NavLink>
+            <NavLink class="nav-link" href="tickets">Hỗ trợ khách hàng</NavLink>
+            <NavLink class="nav-link" href="admin-reports">Báo cáo</NavLink>
+            <button class="nav-link nav-button" type="button" @onclick="LogoutAsync">Đăng xuất</button>
+        }
+    </nav>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthState.OnChange += StateHasChanged;
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+    }
+}

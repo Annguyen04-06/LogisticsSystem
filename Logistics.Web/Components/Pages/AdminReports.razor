@@ -1,0 +1,303 @@
+@page "/admin-reports"
+@page "/admin/reports"
+@page "/seller-reports"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject ReportApiService ReportApi
+@inject IJSRuntime JsRuntime
+@inject NavigationManager Navigation
+
+<PageTitle>Báo cáo</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Báo cáo</h1>
+        <p class="page-subtitle">Xem thống kê doanh thu và tải báo cáo Excel, PDF từ hệ thống.</p>
+    </div>
+    <button class="btn btn-outline-primary" type="button" @onclick="ReloadAsync">Tải lại</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="modern-card p-4 text-center text-muted">Đang tải dữ liệu...</div>
+}
+else
+{
+    @if (IsAdmin && adminRevenue is not null)
+    {
+        <div class="row g-3 mb-4">
+            @StatCard("Tổng doanh thu", FormatCurrency(adminRevenue.TotalRevenue), "Chỉ tính đơn đã giao")
+            @StatCard("Tổng đơn hàng", adminRevenue.TotalOrders.ToString("N0"), "Tất cả đơn hàng")
+            @StatCard("Đơn đã giao", adminRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất")
+            @StatCard("Đơn chờ xử lý", adminRevenue.PendingOrders.ToString("N0"), "Đơn đang chờ")
+            @StatCard("Đơn đã hủy", adminRevenue.CancelledOrders.ToString("N0"), "Đơn không hoàn tất")
+        </div>
+
+        <div class="modern-card table-card mb-4">
+            <div class="p-4 pb-2 d-flex flex-wrap justify-content-between gap-2 align-items-center">
+                <h2 class="h5 fw-bold mb-0">Sản phẩm bán chạy</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-success" type="button" @onclick="DownloadOrdersExcelAsync" disabled="@isDownloading">Xuất Excel đơn hàng</button>
+                    <button class="btn btn-success" type="button" @onclick="DownloadAdminRevenueExcelAsync" disabled="@isDownloading">Xuất Excel doanh thu</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mã sản phẩm</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Số lượng đã bán</th>
+                            <th>Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (topProducts.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var product in topProducts)
+                            {
+                                <tr>
+                                    <td>#@product.ProductId</td>
+                                    <td class="fw-semibold">@product.ProductName</td>
+                                    <td>@product.TotalSold.ToString("N0")</td>
+                                    <td>@FormatCurrency(product.TotalRevenue)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (IsSeller && sellerRevenue is not null)
+    {
+        <div class="row g-3 mb-4">
+            @StatCard("Doanh thu của tôi", FormatCurrency(sellerRevenue.TotalRevenue), sellerRevenue.SellerName)
+            @StatCard("Tổng đơn hàng", sellerRevenue.TotalOrders.ToString("N0"), "Đơn hàng của người bán")
+            @StatCard("Đơn đã giao", sellerRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất")
+        </div>
+
+        <div class="modern-card p-4 mb-4">
+            <h2 class="h5 fw-bold mb-3">Báo cáo doanh thu cá nhân</h2>
+            <button class="btn btn-success" type="button" @onclick="DownloadSellerRevenueExcelAsync" disabled="@isDownloading">
+                Xuất Excel doanh thu cá nhân
+            </button>
+        </div>
+    }
+
+    @if (CanDownloadInvoice)
+    {
+        <div class="modern-card p-4">
+            <h2 class="h5 fw-bold mb-3">Tải hóa đơn PDF</h2>
+            <EditForm Model="@invoiceForm" OnValidSubmit="DownloadInvoicePdfAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Mã đơn hàng</label>
+                        <InputNumber class="form-control" @bind-Value="invoiceForm.OrderId" />
+                    </div>
+                    <div class="col-md-auto">
+                        <button class="btn btn-warning" type="submit" disabled="@isDownloading">Tải hóa đơn PDF</button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    }
+}
+
+@code {
+    private RevenueReportDto? adminRevenue;
+    private SellerRevenueReportDto? sellerRevenue;
+    private List<TopProductReportDto> topProducts = [];
+    private InvoiceDownloadForm invoiceForm = new();
+    private bool isLoading = true;
+    private bool isDownloading;
+    private string? successMessage;
+    private string? errorMessage;
+
+    private bool IsAdmin => AuthState.CurrentRole == "Admin";
+    private bool IsSeller => AuthState.CurrentRole == "Seller";
+    private bool IsCustomer => AuthState.CurrentRole == "Customer";
+    private bool CanDownloadInvoice => IsAdmin || IsCustomer;
+
+    private const string ExcelContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    private const string PdfContentType = "application/pdf";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadReportsAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadReportsAsync(bool clearMessages = true)
+    {
+        isLoading = true;
+
+        if (clearMessages)
+        {
+            ClearMessages();
+        }
+
+        try
+        {
+            if (IsAdmin)
+            {
+                var revenueResponse = await ReportApi.GetAdminRevenueAsync();
+                var productsResponse = await ReportApi.GetTopProductsAsync();
+
+                if (revenueResponse?.Success == true)
+                {
+                    adminRevenue = revenueResponse.Data;
+                }
+                else
+                {
+                    errorMessage = revenueResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                }
+
+                if (productsResponse?.Success == true)
+                {
+                    topProducts = productsResponse.Data ?? [];
+                }
+                else
+                {
+                    errorMessage = productsResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                }
+            }
+            else if (IsSeller)
+            {
+                var sellerResponse = await ReportApi.GetSellerRevenueAsync();
+
+                if (sellerResponse?.Success == true)
+                {
+                    sellerRevenue = sellerResponse.Data;
+                }
+                else
+                {
+                    errorMessage = sellerResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                }
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task ReloadAsync()
+    {
+        return LoadReportsAsync();
+    }
+
+    private async Task DownloadOrdersExcelAsync()
+    {
+        await DownloadFileAsync(
+            () => ReportApi.DownloadOrdersExcelAsync(),
+            "orders-report.xlsx",
+            ExcelContentType,
+            "Tải báo cáo đơn hàng thành công.");
+    }
+
+    private async Task DownloadAdminRevenueExcelAsync()
+    {
+        await DownloadFileAsync(
+            () => ReportApi.DownloadAdminRevenueExcelAsync(),
+            "revenue-report.xlsx",
+            ExcelContentType,
+            "Tải báo cáo doanh thu thành công.");
+    }
+
+    private async Task DownloadSellerRevenueExcelAsync()
+    {
+        await DownloadFileAsync(
+            () => ReportApi.DownloadSellerRevenueExcelAsync(),
+            "seller-revenue-report.xlsx",
+            ExcelContentType,
+            "Tải báo cáo doanh thu cá nhân thành công.");
+    }
+
+    private async Task DownloadInvoicePdfAsync()
+    {
+        var orderId = invoiceForm.OrderId;
+        await DownloadFileAsync(
+            () => ReportApi.DownloadInvoicePdfAsync(orderId),
+            $"invoice-{orderId}.pdf",
+            PdfContentType,
+            "Tải hóa đơn PDF thành công.");
+    }
+
+    private async Task DownloadFileAsync(Func<Task<byte[]>> downloadAction, string fileName, string contentType, string successText)
+    {
+        ClearMessages();
+        isDownloading = true;
+
+        try
+        {
+            var bytes = await downloadAction();
+            await JsRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, contentType, Convert.ToBase64String(bytes));
+            successMessage = successText;
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isDownloading = false;
+        }
+    }
+
+    private void ClearMessages()
+    {
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private static string FormatCurrency(decimal value)
+    {
+        return $"{value:N0} VND";
+    }
+
+    private static RenderFragment StatCard(string label, string value, string note) => @<div class="col-sm-6 col-xl">
+        <div class="stat-card h-100">
+            <div class="stat-label">@label</div>
+            <div class="stat-value">@value</div>
+            <div class="text-muted small">@note</div>
+        </div>
+    </div>;
+}

@@ -1,0 +1,336 @@
+@page "/payments"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject PaymentApiService PaymentApi
+@inject NavigationManager Navigation
+
+<PageTitle>Thanh toán</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Thanh toán</h1>
+        <p class="page-subtitle">Quản lý ví điện tử, thanh toán đơn hàng và xem lịch sử thanh toán.</p>
+    </div>
+    <button class="btn btn-outline-primary" type="button" @onclick="ReloadAsync">Tải lại</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="modern-card p-4 text-center text-muted">Đang tải dữ liệu...</div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="stat-card h-100">
+                <div class="stat-label">Số dư ví</div>
+                <div class="stat-value">@FormatCurrency(wallet?.Balance ?? 0)</div>
+                <div class="text-muted small">Ví điện tử của khách hàng</div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="modern-card p-4 h-100">
+                <h2 class="h5 fw-bold mb-3">Nạp ví</h2>
+                <EditForm Model="@depositForm" OnValidSubmit="DepositWalletAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <label class="form-label">Số tiền nạp</label>
+                    <InputNumber class="form-control" @bind-Value="depositForm.Amount" />
+
+                    <button class="btn btn-success mt-3" type="submit" disabled="@isSubmitting">
+                        @(isSubmitting ? "Đang xử lý..." : "Nạp ví")
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="modern-card p-4 h-100">
+                <h2 class="h5 fw-bold mb-3">Thanh toán đơn hàng</h2>
+                <EditForm Model="@payForm" OnValidSubmit="PayOrderAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <label class="form-label">Mã đơn hàng</label>
+                    <InputNumber class="form-control" @bind-Value="payForm.OrderId" />
+
+                    <label class="form-label mt-3">Phương thức thanh toán</label>
+                    <InputSelect class="form-select" @bind-Value="payForm.Method">
+                        <option value="COD">Thanh toán khi nhận hàng</option>
+                        <option value="Wallet">Ví điện tử</option>
+                        <option value="BankingDemo">Chuyển khoản giả lập</option>
+                    </InputSelect>
+
+                    <button class="btn btn-primary mt-3" type="submit" disabled="@isSubmitting">
+                        @(isSubmitting ? "Đang xử lý..." : "Thanh toán")
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+
+    <div class="modern-card table-card">
+        <div class="p-4 pb-2">
+            <h2 class="h5 fw-bold mb-0">Lịch sử thanh toán</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Mã thanh toán</th>
+                        <th>Mã đơn hàng</th>
+                        <th>Số tiền</th>
+                        <th>Phương thức</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (payments.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var payment in payments)
+                        {
+                            <tr>
+                                <td>#@payment.Id</td>
+                                <td>#@payment.OrderId</td>
+                                <td>@FormatCurrency(payment.Amount)</td>
+                                <td>@GetMethodText(payment.Method)</td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(payment.Status)">
+                                        @GetStatusText(payment.Status)
+                                    </span>
+                                </td>
+                                <td>@payment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private WalletDto? wallet;
+    private List<PaymentDto> payments = [];
+    private DepositWalletDto depositForm = new();
+    private PayOrderDto payForm = new();
+    private bool isLoading = true;
+    private bool isSubmitting;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        PrefillOrderIdFromQuery();
+        await LoadPaymentDataAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadPaymentDataAsync(bool clearMessages = true)
+    {
+        isLoading = true;
+
+        if (clearMessages)
+        {
+            ClearMessages();
+        }
+
+        try
+        {
+            var walletResponse = await PaymentApi.GetMyWalletAsync();
+            var paymentsResponse = await PaymentApi.GetMyPaymentsAsync();
+
+            if (walletResponse?.Success == true)
+            {
+                wallet = walletResponse.Data;
+            }
+            else
+            {
+                errorMessage = walletResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+
+            if (paymentsResponse?.Success == true)
+            {
+                payments = paymentsResponse.Data ?? [];
+            }
+            else
+            {
+                errorMessage = paymentsResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task ReloadAsync()
+    {
+        return LoadPaymentDataAsync();
+    }
+
+    private async Task DepositWalletAsync()
+    {
+        ClearMessages();
+        isSubmitting = true;
+
+        try
+        {
+            var response = await PaymentApi.DepositWalletAsync(depositForm);
+
+            if (response?.Success == true)
+            {
+                wallet = response.Data;
+                depositForm = new DepositWalletDto();
+                successMessage = "Nạp ví thành công.";
+                await LoadPaymentDataAsync(false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task PayOrderAsync()
+    {
+        ClearMessages();
+        isSubmitting = true;
+
+        try
+        {
+            var response = await PaymentApi.PayOrderAsync(payForm);
+
+            if (response?.Success == true)
+            {
+                successMessage = payForm.Method == "COD"
+                    ? "Đã ghi nhận thanh toán khi nhận hàng."
+                    : "Thanh toán thành công.";
+                await LoadPaymentDataAsync(false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void PrefillOrderIdFromQuery()
+    {
+        var query = Navigation.ToAbsoluteUri(Navigation.Uri).Query.TrimStart('?');
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return;
+        }
+
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var keyValue = part.Split('=', 2);
+            if (keyValue.Length == 2
+                && string.Equals(keyValue[0], "orderId", StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(Uri.UnescapeDataString(keyValue[1]), out var orderId))
+            {
+                payForm.OrderId = orderId;
+                return;
+            }
+        }
+    }
+
+    private void ClearMessages()
+    {
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private static string FormatCurrency(decimal value)
+    {
+        return $"{value:N0} VND";
+    }
+
+    private static string GetMethodText(string method)
+    {
+        return method switch
+        {
+            "COD" => "Thanh toán khi nhận hàng",
+            "Wallet" => "Ví điện tử",
+            "BankingDemo" => "Chuyển khoản giả lập",
+            _ => method
+        };
+    }
+
+    private static string GetStatusText(string status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ thanh toán",
+            "Paid" => "Đã thanh toán",
+            "Failed" => "Thất bại",
+            "Refunded" => "Đã hoàn tiền",
+            _ => status
+        };
+    }
+
+    private static string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "text-bg-warning",
+            "Paid" => "text-bg-success",
+            "Failed" => "text-bg-danger",
+            "Refunded" => "text-bg-info",
+            _ => "text-bg-secondary"
+        };
+    }
+}

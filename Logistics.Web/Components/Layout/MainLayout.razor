@@ -1,0 +1,61 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <NavMenu />
+    </aside>
+
+    <main class="app-main">
+        <header class="topbar">
+            <div>
+                <div class="text-muted small">Hệ thống quản lý Logistics</div>
+                <strong>Bảng điều khiển vận hành</strong>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge rounded-pill text-bg-light border">API: localhost:5203</span>
+                <div class="text-end">
+                    <div class="fw-semibold">@AuthState.DisplayName</div>
+                    <div class="text-muted small">@AuthStateService.GetVietnameseRoleName(AuthState.CurrentRole)</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            @Body
+        </div>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Đã xảy ra lỗi không mong muốn.
+    <a href="." class="reload">Tải lại</a>
+    <span class="dismiss">x</span>
+</div>
+
+@code {
+    private bool sessionLoaded;
+
+    protected override void OnInitialized()
+    {
+        AuthState.OnChange += StateHasChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || sessionLoaded)
+        {
+            return;
+        }
+
+        sessionLoaded = true;
+        await AuthService.LoadSessionAsync();
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+    }
+}
