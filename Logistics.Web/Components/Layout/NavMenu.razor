@@ -6,8 +6,8 @@
 <div class="sidebar-brand">
     <div class="brand-mark">LS</div>
     <div>
-        <div class="brand-title">Logistics</div>
-        <div class="brand-subtitle">Quản lý</div>
+        <div class="brand-title">Hệ thống Logistics</div>
+        <div class="brand-subtitle">Quản lý vận hành</div>
     </div>
 </div>
 
@@ -18,46 +18,50 @@
         @if (!AuthState.IsAuthenticated)
         {
             <div class="nav-section">Tài khoản</div>
-            <NavLink class="nav-link" href="login">Đăng nhập</NavLink>
-            <NavLink class="nav-link" href="register">Đăng ký</NavLink>
-            <NavLink class="nav-link" href="products">Sản phẩm</NavLink>
+            @NavItem("login", "bi-box-arrow-in-right", "Đăng nhập")
+            @NavItem("register", "bi-person-plus", "Đăng ký")
+            @NavItem("products", "bi-box-seam", "Sản phẩm")
         }
         else if (AuthState.CurrentRole == "Customer")
         {
             <div class="nav-section">Khách hàng</div>
-            <NavLink class="nav-link" href="products">Sản phẩm</NavLink>
-            <NavLink class="nav-link" href="cart">Giỏ hàng</NavLink>
-            <NavLink class="nav-link" href="my-orders">Đơn hàng của tôi</NavLink>
-            <NavLink class="nav-link" href="payments">Thanh toán</NavLink>
-            <NavLink class="nav-link" href="my-tickets">Hỗ trợ khách hàng</NavLink>
-            <button class="nav-link nav-button" type="button" @onclick="LogoutAsync">Đăng xuất</button>
+            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
+            @NavItem("products", "bi-box-seam", "Sản phẩm")
+            @NavItem("cart", "bi-cart3", "Giỏ hàng")
+            @NavItem("my-orders", "bi-receipt", "Đơn hàng của tôi")
+            @NavItem("payments", "bi-wallet2", "Thanh toán")
+            @NavItem("my-tickets", "bi-headset", "Hỗ trợ khách hàng")
+            @LogoutButton()
         }
         else if (AuthState.CurrentRole == "Seller")
         {
             <div class="nav-section">Người bán</div>
-            <NavLink class="nav-link" href="seller-dashboard">Bảng điều khiển người bán</NavLink>
-            <NavLink class="nav-link" href="seller-products">Quản lý sản phẩm</NavLink>
-            <NavLink class="nav-link" href="seller-orders">Đơn hàng người bán</NavLink>
-            <NavLink class="nav-link" href="tickets">Hỗ trợ khách hàng</NavLink>
-            <NavLink class="nav-link" href="admin-reports">Báo cáo</NavLink>
-            <button class="nav-link nav-button" type="button" @onclick="LogoutAsync">Đăng xuất</button>
+            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
+            @NavItem("seller-dashboard", "bi-speedometer2", "Bảng điều khiển người bán")
+            @NavItem("seller-products", "bi-box-seam", "Quản lý sản phẩm")
+            @NavItem("seller-orders", "bi-receipt", "Đơn hàng người bán")
+            @NavItem("tickets", "bi-headset", "Hỗ trợ khách hàng")
+            @NavItem("admin-reports", "bi-file-earmark-bar-graph", "Báo cáo")
+            @LogoutButton()
         }
         else if (AuthState.CurrentRole == "Shipper")
         {
             <div class="nav-section">Người giao hàng</div>
-            <NavLink class="nav-link" href="shipper-orders">Đơn cần giao</NavLink>
-            <NavLink class="nav-link" href="delivery-history">Lịch sử giao hàng</NavLink>
-            <button class="nav-link nav-button" type="button" @onclick="LogoutAsync">Đăng xuất</button>
+            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
+            @NavItem("shipper-orders", "bi-truck", "Đơn cần giao")
+            @NavItem("delivery-history", "bi-receipt", "Lịch sử giao hàng")
+            @LogoutButton()
         }
         else if (AuthState.CurrentRole == "Admin")
         {
             <div class="nav-section">Quản trị viên</div>
-            <NavLink class="nav-link" href="admin-dashboard">Bảng điều khiển quản trị</NavLink>
-            <NavLink class="nav-link" href="admin-users">Người dùng</NavLink>
-            <NavLink class="nav-link" href="admin-coupons">Mã giảm giá</NavLink>
-            <NavLink class="nav-link" href="tickets">Hỗ trợ khách hàng</NavLink>
-            <NavLink class="nav-link" href="admin-reports">Báo cáo</NavLink>
-            <button class="nav-link nav-button" type="button" @onclick="LogoutAsync">Đăng xuất</button>
+            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
+            @NavItem("admin-dashboard", "bi-speedometer2", "Bảng điều khiển quản trị")
+            @NavItem("admin-users", "bi-people", "Người dùng")
+            @NavItem("admin-coupons", "bi-ticket-perforated", "Mã giảm giá")
+            @NavItem("tickets", "bi-headset", "Hỗ trợ khách hàng")
+            @NavItem("admin-reports", "bi-file-earmark-bar-graph", "Báo cáo")
+            @LogoutButton()
         }
     </nav>
 </div>
@@ -73,6 +77,16 @@
         await AuthService.LogoutAsync();
         Navigation.NavigateTo("/login");
     }
+
+    private static RenderFragment NavItem(string href, string icon, string label) => @<NavLink class="sidebar-link" href="@href">
+        <i class="bi @icon"></i>
+        <span>@label</span>
+    </NavLink>;
+
+    private RenderFragment LogoutButton() => @<button class="sidebar-link sidebar-button" type="button" @onclick="LogoutAsync">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Đăng xuất</span>
+    </button>;
 
     public void Dispose()
     {

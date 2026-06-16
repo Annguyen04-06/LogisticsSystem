@@ -32,6 +32,9 @@ public class ProductDto
     [JsonPropertyName("sellerName")]
     public string SellerName { get; set; } = string.Empty;
 
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
+
     [JsonPropertyName("isActive")]
     public bool IsActive { get; set; }
 

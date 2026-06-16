@@ -214,3 +214,7 @@ D:\LogisticsSystem\Logistics.API\bin\Debug\net10.0\runtimes\win-x64\native\Quest
 D:\LogisticsSystem\Logistics.API\bin\Debug\net10.0\runtimes\win-x64\native\qpdf.dll
 D:\LogisticsSystem\Logistics.API\bin\Debug\net10.0\runtimes\win-x86\native\QuestPdfSkia.dll
 D:\LogisticsSystem\Logistics.API\bin\Debug\net10.0\runtimes\win-x86\native\qpdf.dll
+D:\LogisticsSystem\Logistics.API\bin\Debug\net10.0\BouncyCastle.Cryptography.dll
+D:\LogisticsSystem\Logistics.API\bin\Debug\net10.0\MailKit.dll
+D:\LogisticsSystem\Logistics.API\bin\Debug\net10.0\MimeKit.dll
+D:\LogisticsSystem\Logistics.API\bin\Debug\net10.0\CloudinaryDotNet.dll

@@ -10,6 +10,7 @@ public class User : BaseEntity
     public string PasswordHash { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
     public UserRole Role { get; set; }
     public bool IsApproved { get; set; }
     public bool IsActive { get; set; } = true;

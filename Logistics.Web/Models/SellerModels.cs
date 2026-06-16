@@ -65,6 +65,9 @@ public class CreateProductDto
     [Range(1, int.MaxValue, ErrorMessage = "Vui lòng chọn danh mục.")]
     [JsonPropertyName("categoryId")]
     public int CategoryId { get; set; }
+
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
 }
 
 public class UpdateProductDto : CreateProductDto

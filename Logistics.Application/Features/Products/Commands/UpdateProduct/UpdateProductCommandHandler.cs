@@ -44,6 +44,7 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
         product.Price = request.Product.Price;
         product.Quantity = request.Product.Quantity;
         product.CategoryId = request.Product.CategoryId;
+        product.ImageUrl = request.Product.ImageUrl;
         product.IsActive = request.Product.IsActive;
         product.UpdatedAt = DateTime.UtcNow;
 
@@ -63,6 +64,7 @@ public class UpdateProductCommandHandler(IApplicationDbContext context)
             CategoryName = category.Name,
             SellerId = product.SellerId,
             SellerName = seller?.FullName ?? string.Empty,
+            ImageUrl = product.ImageUrl,
             IsActive = product.IsActive
         }, "Product updated successfully.");
     }

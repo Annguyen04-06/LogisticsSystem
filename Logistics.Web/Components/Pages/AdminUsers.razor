@@ -1,52 +1,431 @@
 @page "/admin/users"
 @page "/admin-users"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject UserApiService UserApi
+@inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
 
 <PageTitle>Người dùng</PageTitle>
 
 <div class="page-header">
     <div>
         <h1 class="page-title">Người dùng</h1>
-        <p class="page-subtitle">Duyệt người bán và quản lý trạng thái tài khoản.</p>
+        <p class="page-subtitle">Theo dõi vai trò và trạng thái tài khoản trong hệ thống.</p>
     </div>
+    <button class="btn btn-gradient-primary action-btn" type="button" @onclick="() => LoadUsersAsync()">
+        <i class="bi bi-arrow-repeat"></i> Làm mới
+    </button>
 </div>
 
-<div class="modern-card table-card">
-    <table class="table table-hover align-middle">
-        <thead>
-            <tr>
-                <th>Họ và tên</th>
-                <th>Email</th>
-                <th>Vai trò</th>
-                <th>Đã duyệt</th>
-                <th>Đang hoạt động</th>
-                <th class="text-end">Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Quản trị viên</td>
-                <td>admin@gmail.com</td>
-                <td><span class="badge text-bg-danger">Quản trị viên</span></td>
-                <td>Có</td>
-                <td>Có</td>
-                <td class="text-end"><button class="btn btn-sm btn-warning">Vô hiệu hóa</button></td>
-            </tr>
-            <tr>
-                <td>Người bán mẫu</td>
-                <td>seller@gmail.com</td>
-                <td><span class="badge text-bg-success">Người bán</span></td>
-                <td>Có</td>
-                <td>Có</td>
-                <td class="text-end"><button class="btn btn-sm btn-primary">Xem chi tiết</button></td>
-            </tr>
-            <tr>
-                <td>Người giao hàng mẫu</td>
-                <td>shipper@gmail.com</td>
-                <td><span class="badge text-bg-info">Người giao hàng</span></td>
-                <td>Có</td>
-                <td>Có</td>
-                <td class="text-end"><button class="btn btn-sm btn-warning">Vô hiệu hóa</button></td>
-            </tr>
-        </tbody>
-    </table>
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success fade-in">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger fade-in">@errorMessage</div>
+}
+
+@if (selectedUser is not null)
+{
+    <div class="modern-card p-4 mb-4 slide-up">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+            <div>
+                <div class="text-muted small">Chi tiết người dùng</div>
+                <h2 class="h5 fw-bold mb-1">@selectedUser.FullName</h2>
+                <div class="text-muted">@selectedUser.Email</div>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary action-btn" type="button" @onclick="ClearSelectedUser">
+                <i class="bi bi-x-circle"></i> Đóng
+            </button>
+        </div>
+        <div class="row g-3 mt-2">
+            <div class="col-md-3"><strong>Mã:</strong> @selectedUser.Id</div>
+            <div class="col-md-3"><strong>Vai trò:</strong> @DisplayRole(selectedUser.Role)</div>
+            <div class="col-md-3"><strong>Số điện thoại:</strong> @selectedUser.PhoneNumber</div>
+            <div class="col-md-3"><strong>Ngày tạo:</strong> @selectedUser.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+            <div class="col-12"><strong>Địa chỉ:</strong> @selectedUser.Address</div>
+        </div>
+    </div>
+}
+
+<div class="row g-3 mb-4 fade-in">
+    @StatCard("Tổng người dùng", users.Count.ToString("N0"), "Tất cả tài khoản trong hệ thống", "bi-people")
+    @StatCard("Đã duyệt", users.Count(user => user.IsApproved).ToString("N0"), "Tài khoản đã được phê duyệt", "bi-person-check")
+    @StatCard("Tài khoản hoạt động", users.Count(user => user.IsActive).ToString("N0"), "Có thể đăng nhập hệ thống", "bi-shield-check")
+    @StatCard("Người bán chờ duyệt", users.Count(user => user.Role == "Seller" && !user.IsApproved).ToString("N0"), "Cần quản trị viên phê duyệt", "bi-hourglass-split")
 </div>
+
+<div class="modern-card modern-table-wrapper slide-up">
+    <div class="p-4 pb-2 d-flex align-items-center gap-3">
+        <div class="stat-card-icon"><i class="bi bi-people"></i></div>
+        <div>
+            <h2 class="h5 fw-bold mb-0">Danh sách người dùng</h2>
+            <div class="text-muted small">Dữ liệu được tải trực tiếp từ cơ sở dữ liệu.</div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">Đang tải dữ liệu...</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle modern-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Mã</th>
+                        <th>Họ và tên</th>
+                        <th>Email</th>
+                        <th>Số điện thoại</th>
+                        <th>Vai trò</th>
+                        <th>Đã duyệt</th>
+                        <th>Đang hoạt động</th>
+                        <th>Ngày tạo</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (users.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="9"><div class="empty-state">Chưa có dữ liệu.</div></td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var user in users)
+                        {
+                            <tr>
+                                <td class="fw-semibold">#@user.Id</td>
+                                <td class="fw-semibold">@user.FullName</td>
+                                <td>@user.Email</td>
+                                <td>@user.PhoneNumber</td>
+                                <td>
+                                    <span class="status-badge @RoleBadgeClass(user.Role)">
+                                        @DisplayRole(user.Role)
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge @(user.IsApproved ? "status-delivered" : "status-pending")">
+                                        @(user.IsApproved ? "Đã duyệt" : "Chờ duyệt")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge @(user.IsActive ? "status-delivered" : "status-cancelled")">
+                                        @(user.IsActive ? "Đang hoạt động" : "Đã vô hiệu hóa")
+                                    </span>
+                                </td>
+                                <td>@user.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end">
+                                    @if (user.Role == "Seller" && !user.IsApproved)
+                                    {
+                                        <button class="btn btn-sm btn-soft-success action-btn me-1"
+                                                type="button"
+                                                disabled="@IsBusy(user.Id)"
+                                                @onclick="() => ApproveSellerAsync(user.Id)">
+                                            <i class="bi bi-check-circle"></i> Duyệt người bán
+                                        </button>
+                                    }
+
+                                    <button class="btn btn-sm btn-soft-primary action-btn me-1"
+                                            type="button"
+                                            disabled="@IsBusy(user.Id)"
+                                            @onclick="() => ViewDetailsAsync(user.Id)">
+                                        <i class="bi bi-eye"></i> Xem chi tiết
+                                    </button>
+
+                                    @if (IsCurrentUser(user.Id))
+                                    {
+                                        <span class="text-muted small">Tài khoản hiện tại</span>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm @(user.IsActive ? "btn-soft-warning" : "btn-soft-success") action-btn me-1"
+                                                type="button"
+                                                disabled="@IsBusy(user.Id)"
+                                                @onclick="() => ToggleActiveAsync(user)">
+                                            <i class="bi @(user.IsActive ? "bi-slash-circle" : "bi-check-circle")"></i>
+                                            @(user.IsActive ? "Vô hiệu hóa" : "Kích hoạt")
+                                        </button>
+
+                                        <button class="btn btn-sm btn-soft-danger action-btn"
+                                                type="button"
+                                                disabled="@IsBusy(user.Id)"
+                                                @onclick="() => DeleteUserAsync(user.Id)">
+                                            <i class="bi bi-trash"></i> Xóa vĩnh viễn
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<UserDto> users = [];
+    private UserDto? selectedUser;
+    private bool isLoading = true;
+    private int? busyUserId;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadUsersAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadUsersAsync(bool clearMessages = true)
+    {
+        try
+        {
+            isLoading = true;
+
+            if (clearMessages)
+            {
+                ClearMessages();
+            }
+
+            var response = await UserApi.GetUsersAsync();
+
+            if (response?.Success == true)
+            {
+                users = response.Data ?? [];
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ViewDetailsAsync(int id)
+    {
+        ClearMessages();
+
+        try
+        {
+            busyUserId = id;
+            var response = await UserApi.GetUserByIdAsync(id);
+
+            if (response?.Success == true && response.Data is not null)
+            {
+                selectedUser = response.Data;
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            busyUserId = null;
+        }
+    }
+
+    private async Task ApproveSellerAsync(int id)
+    {
+        ClearMessages();
+
+        try
+        {
+            busyUserId = id;
+            var response = await UserApi.ApproveSellerAsync(id);
+
+            if (response?.Success == true)
+            {
+                successMessage = response.Message;
+                await LoadUsersAsync(clearMessages: false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            busyUserId = null;
+        }
+    }
+
+    private async Task ToggleActiveAsync(UserDto user)
+    {
+        ClearMessages();
+
+        if (IsCurrentUser(user.Id))
+        {
+            errorMessage = "Quản trị viên không thể vô hiệu hóa chính mình.";
+            return;
+        }
+
+        if (user.IsActive)
+        {
+            var confirmed = await JsRuntime.InvokeAsync<bool>(
+                "confirm",
+                "Bạn có chắc muốn vô hiệu hóa tài khoản này không?");
+
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+
+        try
+        {
+            busyUserId = user.Id;
+            var response = await UserApi.ToggleUserActiveAsync(user.Id, !user.IsActive);
+
+            if (response?.Success == true)
+            {
+                successMessage = response.Message;
+                await LoadUsersAsync(clearMessages: false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            busyUserId = null;
+        }
+    }
+
+    private async Task DeleteUserAsync(int id)
+    {
+        ClearMessages();
+
+        if (IsCurrentUser(id))
+        {
+            errorMessage = "Quản trị viên không thể xóa chính mình.";
+            return;
+        }
+
+        var confirmed = await JsRuntime.InvokeAsync<bool>(
+            "confirm",
+            "Bạn có chắc muốn xóa vĩnh viễn tài khoản này khỏi database không? Hành động này không thể hoàn tác.");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            busyUserId = id;
+            var response = await UserApi.DeleteUserAsync(id);
+
+            if (response?.Success == true)
+            {
+                successMessage = response.Message;
+                await LoadUsersAsync(clearMessages: false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            busyUserId = null;
+        }
+    }
+
+    private void ClearSelectedUser()
+    {
+        selectedUser = null;
+    }
+
+    private void ClearMessages()
+    {
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private bool IsBusy(int userId)
+    {
+        return busyUserId == userId;
+    }
+
+    private bool IsCurrentUser(int userId)
+    {
+        return AuthState.CurrentUser?.UserId == userId;
+    }
+
+    private static string DisplayRole(string role)
+    {
+        return role switch
+        {
+            "Customer" => "Khách hàng",
+            "Seller" => "Người bán",
+            "Shipper" => "Người giao hàng",
+            "Admin" => "Quản trị viên",
+            _ => role
+        };
+    }
+
+    private static string RoleBadgeClass(string role)
+    {
+        return role switch
+        {
+            "Admin" => "status-cancelled",
+            "Seller" => "status-delivered",
+            "Shipper" => "status-confirmed",
+            _ => "status-shipping"
+        };
+    }
+
+    private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-sm-6 col-xl-3">
+        <div class="stat-card hover-lift h-100">
+            <div class="stat-card-icon"><i class="bi @icon"></i></div>
+            <div class="stat-card-title">@label</div>
+            <div class="stat-card-value">@value</div>
+            <div class="stat-card-description">@note</div>
+        </div>
+    </div>;
+}

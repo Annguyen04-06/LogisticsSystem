@@ -1,5 +1,6 @@
 using Logistics.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Logistics.Application.Interfaces;
 
@@ -23,6 +24,8 @@ public interface IApplicationDbContext
     DbSet<TicketReply> TicketReplies { get; }
     DbSet<SellerRating> SellerRatings { get; }
     DbSet<StockTransaction> StockTransactions { get; }
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
 
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

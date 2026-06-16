@@ -12,7 +12,9 @@
         <h1 class="page-title">@PageTitleText</h1>
         <p class="page-subtitle">@PageSubtitleText</p>
     </div>
-    <button class="btn btn-outline-primary" type="button" @onclick="ReloadTicketsAsync">Tải lại</button>
+    <button class="btn btn-soft-primary" type="button" @onclick="ReloadTicketsAsync">
+        <i class="bi bi-arrow-repeat"></i> Tải lại
+    </button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
@@ -29,7 +31,7 @@
     @if (IsCustomer)
     {
         <div class="col-xl-4">
-            <div class="modern-card p-4">
+            <div class="modern-card form-modern p-4">
                 <h2 class="h5 fw-bold mb-3">Gửi phiếu hỗ trợ</h2>
                 <EditForm Model="@createForm" OnValidSubmit="CreateTicketAsync">
                     <DataAnnotationsValidator />
@@ -45,7 +47,7 @@
                     <label class="form-label mt-3">Nội dung</label>
                     <InputTextArea class="form-control" rows="5" @bind-Value="createForm.Content" placeholder="Nhập nội dung cần hỗ trợ" />
 
-                    <button class="btn btn-success mt-3" type="submit" disabled="@isSaving">
+                    <button class="btn btn-gradient-success mt-3" type="submit" disabled="@isSaving">
                         @(isSaving ? "Đang gửi..." : "Gửi phiếu hỗ trợ")
                     </button>
                 </EditForm>
@@ -54,15 +56,15 @@
     }
 
     <div class="@(IsCustomer ? "col-xl-8" : "col-12")">
-        <div class="modern-card table-card">
+        <div class="modern-card table-card modern-table-wrapper">
             @if (isLoading)
             {
-                <div class="p-4 text-center text-muted">Đang tải dữ liệu...</div>
+                <div class="loading-state">Đang tải dữ liệu...</div>
             }
             else
             {
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle modern-table mb-0">
                         <thead>
                             <tr>
                                 <th>Mã phiếu</th>
@@ -81,7 +83,7 @@
                             @if (tickets.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="@(IsCustomer ? 6 : 7)" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                    <td colspan="@(IsCustomer ? 6 : 7)"><div class="empty-state">Chưa có dữ liệu.</div></td>
                                 </tr>
                             }
                             else
@@ -103,10 +105,10 @@
                                         </td>
                                         <td>@ticket.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-primary me-1" type="button" @onclick="() => SelectTicketAsync(ticket.Id)">Xem chi tiết</button>
+                                            <button class="btn btn-sm btn-soft-primary action-btn me-1" type="button" @onclick="() => SelectTicketAsync(ticket.Id)"><i class="bi bi-eye"></i> Xem chi tiết</button>
                                             @if (ticket.Status != "Closed")
                                             {
-                                                <button class="btn btn-sm btn-success" type="button" @onclick="() => CloseTicketAsync(ticket.Id)">Đóng phiếu</button>
+                                                <button class="btn btn-sm btn-soft-success action-btn" type="button" @onclick="() => CloseTicketAsync(ticket.Id)"><i class="bi bi-check-circle"></i> Đóng phiếu</button>
                                             }
                                         </td>
                                     </tr>
@@ -122,7 +124,7 @@
 
 @if (selectedTicket is not null)
 {
-    <div class="modern-card p-4 mt-3">
+    <div class="modern-card form-section p-4 mt-3">
         <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
             <div>
                 <h2 class="h5 fw-bold mb-1">Chi tiết phiếu #@selectedTicket.Id</h2>
@@ -150,7 +152,7 @@
                     </select>
                 </div>
                 <div class="col-sm-auto">
-                    <button class="btn btn-warning" type="button" @onclick="UpdateStatusAsync">Cập nhật</button>
+                    <button class="btn btn-soft-warning action-btn" type="button" @onclick="UpdateStatusAsync"><i class="bi bi-pencil-square"></i> Cập nhật</button>
                 </div>
             </div>
         }
@@ -185,7 +187,7 @@
                 <label class="form-label">Nội dung phản hồi</label>
                 <InputTextArea class="form-control" rows="4" @bind-Value="replyForm.Message" />
                 <div class="d-flex gap-2 mt-3">
-                    <button class="btn btn-primary" type="submit" disabled="@isReplying">
+                    <button class="btn btn-gradient-primary" type="submit" disabled="@isReplying">
                         @(isReplying ? "Đang gửi..." : "Gửi phản hồi")
                     </button>
                     <button class="btn btn-outline-secondary" type="button" @onclick="ClearSelectedTicket">Đóng chi tiết</button>

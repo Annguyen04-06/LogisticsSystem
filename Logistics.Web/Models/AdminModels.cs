@@ -78,6 +78,42 @@ public class OrderStatisticsByMonthDto
     public decimal Revenue { get; set; }
 }
 
+public class UserDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("fullName")]
+    public string FullName { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("phoneNumber")]
+    public string PhoneNumber { get; set; } = string.Empty;
+
+    [JsonPropertyName("address")]
+    public string Address { get; set; } = string.Empty;
+
+    [JsonPropertyName("role")]
+    public string Role { get; set; } = string.Empty;
+
+    [JsonPropertyName("isApproved")]
+    public bool IsApproved { get; set; }
+
+    [JsonPropertyName("isActive")]
+    public bool IsActive { get; set; }
+
+    [JsonPropertyName("createdAt")]
+    public DateTime CreatedAt { get; set; }
+}
+
+public class UpdateUserStatusDto
+{
+    [JsonPropertyName("isActive")]
+    public bool IsActive { get; set; }
+}
+
 public class CouponDto
 {
     [JsonPropertyName("id")]

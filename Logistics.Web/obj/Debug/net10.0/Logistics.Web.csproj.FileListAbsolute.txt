@@ -83,5 +83,6 @@ D:\LogisticsSystem\Logistics.Web\obj\Debug\net10.0\ref\Logistics.Web.dll
 D:\LogisticsSystem\Logistics.Web\obj\Debug\net10.0\compressed\egk97rx4zi-{0}-1fccau0mjh-1fccau0mjh.gz
 D:\LogisticsSystem\Logistics.Web\obj\Debug\net10.0\compressed\zh16mhf615-{0}-rdm38eikz9-rdm38eikz9.gz
 D:\LogisticsSystem\Logistics.Web\obj\Debug\net10.0\compressed\rdad6swmqf-{0}-rdm38eikz9-rdm38eikz9.gz
-D:\LogisticsSystem\Logistics.Web\obj\Debug\net10.0\compressed\9ok8thgdku-{0}-gt64bpyq11-gt64bpyq11.gz
 D:\LogisticsSystem\Logistics.Web\obj\Debug\net10.0\compressed\4wmmwp6s3q-{0}-dbx2641jez-dbx2641jez.gz
+D:\LogisticsSystem\Logistics.Web\obj\Debug\net10.0\compressed\9ok8thgdku-{0}-m1sj5ofpur-m1sj5ofpur.gz
+D:\LogisticsSystem\Logistics.Web\obj\Debug\net10.0\compressed\07941w7doa-{0}-pxokiwp510-pxokiwp510.gz

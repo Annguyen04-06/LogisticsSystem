@@ -33,7 +33,7 @@ public class LoginCommandHandler(
 
         if (!user.IsActive)
         {
-            return ApiResponse<AuthResponseDto>.Fail("User account is inactive.");
+            return ApiResponse<AuthResponseDto>.Fail("Tài khoản đã bị vô hiệu hóa.");
         }
 
         if (!passwordService.VerifyPassword(dto.Password, user.PasswordHash))
@@ -43,7 +43,7 @@ public class LoginCommandHandler(
 
         if (user.Role == UserRole.Seller && !user.IsApproved)
         {
-            return ApiResponse<AuthResponseDto>.Fail("Seller account is pending approval.");
+            return ApiResponse<AuthResponseDto>.Fail("Tài khoản người bán đang chờ quản trị viên phê duyệt.");
         }
 
         var response = CreateAuthResponse(user, jwtService.GenerateToken(user));

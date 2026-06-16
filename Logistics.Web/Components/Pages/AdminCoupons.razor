@@ -5,14 +5,16 @@
 @inject CouponApiService CouponApi
 @inject NavigationManager Navigation
 
-<PageTitle>Mã giảm giá</PageTitle>
+<PageTitle>Quản lý mã giảm giá</PageTitle>
 
 <div class="page-header">
     <div>
-        <h1 class="page-title">Mã giảm giá</h1>
-        <p class="page-subtitle">Tạo và quản lý các chương trình giảm giá.</p>
+        <h1 class="page-title">Quản lý mã giảm giá</h1>
+        <p class="page-subtitle">Tạo và theo dõi các chương trình khuyến mãi.</p>
     </div>
-    <button class="btn btn-primary" type="button" @onclick="StartCreate">Tạo mã giảm giá</button>
+    <button class="btn btn-gradient-primary action-btn" type="button" @onclick="StartCreate">
+        <i class="bi bi-plus-circle"></i> Tạo mã giảm giá
+    </button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
@@ -27,8 +29,14 @@
 
 <div class="row g-3">
     <div class="col-xl-4">
-        <div class="modern-card p-4">
-            <h2 class="h5 fw-bold mb-3">@(editingCouponId.HasValue ? "Sửa mã giảm giá" : "Thêm mã giảm giá")</h2>
+        <div class="modern-card form-modern p-4 slide-up">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="stat-card-icon"><i class="bi bi-ticket-perforated"></i></div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">@(editingCouponId.HasValue ? "Sửa mã giảm giá" : "Thêm mã giảm giá")</h2>
+                    <div class="text-muted small">Thiết lập điều kiện áp dụng mã.</div>
+                </div>
+            </div>
 
             <EditForm Model="@couponForm" OnValidSubmit="SaveCouponAsync">
                 <DataAnnotationsValidator />
@@ -64,12 +72,14 @@
                 </div>
 
                 <div class="d-flex gap-2 mt-4">
-                    <button class="btn btn-success" type="submit" disabled="@isSaving">
-                        @(isSaving ? "Đang lưu..." : "Lưu")
+                    <button class="btn btn-gradient-success action-btn" type="submit" disabled="@isSaving">
+                        <i class="bi bi-save"></i> @(isSaving ? "Đang lưu..." : "Lưu")
                     </button>
                     @if (editingCouponId.HasValue)
                     {
-                        <button class="btn btn-outline-secondary" type="button" @onclick="StartCreate">Hủy</button>
+                        <button class="btn btn-outline-secondary action-btn" type="button" @onclick="StartCreate">
+                            <i class="bi bi-x-circle"></i> Hủy
+                        </button>
                     }
                 </div>
             </EditForm>
@@ -77,15 +87,23 @@
     </div>
 
     <div class="col-xl-8">
-        <div class="modern-card table-card">
+        <div class="modern-card modern-table-wrapper slide-up">
+            <div class="p-4 pb-2 d-flex align-items-center gap-3">
+                <div class="stat-card-icon"><i class="bi bi-tags"></i></div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Danh sách mã giảm giá</h2>
+                    <div class="text-muted small">Theo dõi lượt dùng và trạng thái khuyến mãi.</div>
+                </div>
+            </div>
+
             @if (isLoading)
             {
-                <div class="p-4">Đang tải dữ liệu...</div>
+                <div class="loading-state">Đang tải dữ liệu...</div>
             }
             else
             {
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle modern-table mb-0">
                         <thead>
                             <tr>
                                 <th>Mã giảm giá</th>
@@ -104,7 +122,7 @@
                             @if (coupons.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="10" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                    <td colspan="10"><div class="empty-state">Chưa có dữ liệu.</div></td>
                                 </tr>
                             }
                             else
@@ -121,13 +139,17 @@
                                         <td>@coupon.UsageLimit.ToString("N0")</td>
                                         <td>@coupon.UsedCount.ToString("N0")</td>
                                         <td>
-                                            <span class="badge @(coupon.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                            <span class="status-badge @(coupon.IsActive ? "status-delivered" : "text-bg-secondary")">
                                                 @(coupon.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
                                             </span>
                                         </td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-warning me-1" type="button" @onclick="() => StartEdit(coupon)">Sửa</button>
-                                            <button class="btn btn-sm btn-danger" type="button" @onclick="() => DeleteCouponAsync(coupon.Id)">Xóa</button>
+                                            <button class="btn btn-sm btn-soft-warning action-btn me-1" type="button" @onclick="() => StartEdit(coupon)">
+                                                <i class="bi bi-pencil-square"></i> Sửa
+                                            </button>
+                                            <button class="btn btn-sm btn-soft-danger action-btn" type="button" @onclick="() => DeleteCouponAsync(coupon.Id)">
+                                                <i class="bi bi-trash"></i> Xóa
+                                            </button>
                                         </td>
                                     </tr>
                                 }
@@ -347,6 +369,6 @@
 
     private static string FormatCurrency(decimal value)
     {
-        return $"{value:N0} VND";
+        return $"{value:N0} đ";
     }
 }

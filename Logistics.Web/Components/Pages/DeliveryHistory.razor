@@ -10,9 +10,11 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Lịch sử giao hàng</h1>
-        <p class="page-subtitle">Các đơn giao hàng đã hoàn tất.</p>
+        <p class="page-subtitle">Danh sách các đơn hàng đã giao thành công.</p>
     </div>
-    <button class="btn btn-outline-primary" @onclick="LoadHistoryAsync">Tải lại</button>
+    <button class="btn btn-soft-primary action-btn" @onclick="LoadHistoryAsync">
+        <i class="bi bi-arrow-repeat"></i> Tải lại
+    </button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -22,45 +24,55 @@
 
 @if (isLoading)
 {
-    <div class="modern-card p-4 text-center text-muted">Đang tải dữ liệu...</div>
+    <div class="loading-state">Đang tải dữ liệu...</div>
 }
 else
 {
-    <div class="modern-card table-card">
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>Mã giao hàng</th>
-                    <th>Mã đơn</th>
-                    <th>Người giao hàng</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày nhận đơn</th>
-                    <th>Ngày giao xong</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (deliveries.Count == 0)
-                {
+    <div class="modern-card modern-table-wrapper slide-up">
+        <div class="p-4 pb-2 d-flex align-items-center gap-3">
+            <div class="shipper-card-icon">
+                <i class="bi bi-truck"></i>
+            </div>
+            <div>
+                <h2 class="h5 fw-bold mb-0">Đơn đã giao</h2>
+                <div class="text-muted small">Theo dõi các lần giao hàng đã hoàn tất.</div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle modern-table mb-0">
+                <thead>
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">Chưa có lịch sử giao hàng.</td>
+                        <th>Mã giao hàng</th>
+                        <th>Mã đơn</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày nhận đơn</th>
+                        <th>Ngày giao xong</th>
                     </tr>
-                }
-                else
-                {
-                    @foreach (var delivery in deliveries)
+                </thead>
+                <tbody>
+                    @if (deliveries.Count == 0)
                     {
                         <tr>
-                            <td>#@delivery.Id</td>
-                            <td>#@delivery.OrderId</td>
-                            <td>@delivery.ShipperName</td>
-                            <td><span class="status-badge @GetStatusBadgeClass(delivery.Status)">@GetVietnameseStatus(delivery.Status)</span></td>
-                            <td>@delivery.AssignedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td>@(delivery.DeliveredAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                            <td colspan="5"><div class="empty-state">Chưa có lịch sử giao hàng.</div></td>
                         </tr>
                     }
-                }
-            </tbody>
-        </table>
+                    else
+                    {
+                        @foreach (var delivery in deliveries)
+                        {
+                            <tr>
+                                <td class="fw-semibold">#@delivery.Id</td>
+                                <td>#@delivery.OrderId</td>
+                                <td><span class="status-badge @GetStatusBadgeClass(delivery.Status)">@GetVietnameseStatus(delivery.Status)</span></td>
+                                <td>@delivery.AssignedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(delivery.DeliveredAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 }
 

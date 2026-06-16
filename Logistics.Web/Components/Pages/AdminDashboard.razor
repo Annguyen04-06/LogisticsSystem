@@ -10,13 +10,13 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Bảng điều khiển quản trị</h1>
-        <p class="page-subtitle">Theo dõi số liệu vận hành toàn hệ thống.</p>
+        <p class="page-subtitle">Tổng quan doanh thu, đơn hàng và người dùng trong hệ thống.</p>
     </div>
 </div>
 
 @if (isLoading)
 {
-    <div class="modern-card p-4">Đang tải dữ liệu...</div>
+    <div class="loading-state">Đang tải dữ liệu...</div>
 }
 else if (!string.IsNullOrWhiteSpace(errorMessage))
 {
@@ -24,32 +24,50 @@ else if (!string.IsNullOrWhiteSpace(errorMessage))
 }
 else if (dashboard is not null)
 {
+    <div class="row g-3 mb-4 fade-in">
+        @StatCard("Tổng người dùng", dashboard.TotalUsers.ToString("N0"), "Khách hàng, người bán, người giao hàng", "bi-people")
+        @StatCard("Tổng sản phẩm", dashboard.TotalProducts.ToString("N0"), "Sản phẩm trong hệ thống", "bi-box-seam")
+        @StatCard("Tổng đơn hàng", dashboard.TotalOrders.ToString("N0"), "Tất cả đơn hàng", "bi-receipt")
+        @StatCard("Tổng doanh thu", FormatCurrency(dashboard.TotalRevenue), "Chỉ tính đơn đã giao", "bi-cash-stack")
+        @StatCard("Phiếu hỗ trợ", dashboard.TotalTickets.ToString("N0"), "Đang mở: " + dashboard.OpenTickets.ToString("N0"), "bi-headset")
+        @StatCard("Đơn đã giao", dashboard.DeliveredOrders.ToString("N0"), "Đơn hàng hoàn tất", "bi-check2-circle")
+    </div>
+
     <div class="row g-3 mb-4">
-        @StatCard("Tổng người dùng", dashboard.TotalUsers.ToString("N0"), "Tất cả tài khoản")
-        @StatCard("Khách hàng", dashboard.TotalCustomers.ToString("N0"), "Tài khoản khách hàng")
-        @StatCard("Người bán", dashboard.TotalSellers.ToString("N0"), "Tài khoản người bán")
-        @StatCard("Người giao hàng", dashboard.TotalShippers.ToString("N0"), "Tài khoản giao hàng")
-        @StatCard("Tổng sản phẩm", dashboard.TotalProducts.ToString("N0"), "Sản phẩm trong hệ thống")
-        @StatCard("Tổng đơn hàng", dashboard.TotalOrders.ToString("N0"), "Tất cả đơn hàng")
-        @StatCard("Đơn chờ xác nhận", dashboard.PendingOrders.ToString("N0"), "Đang chờ xử lý")
-        @StatCard("Đơn đã xác nhận", dashboard.ConfirmedOrders.ToString("N0"), "Đã được người bán xác nhận")
-        @StatCard("Đơn đang giao", dashboard.ShippingOrders.ToString("N0"), "Đang vận chuyển")
-        @StatCard("Đơn đã giao", dashboard.DeliveredOrders.ToString("N0"), "Đơn hoàn tất")
-        @StatCard("Đơn đã hủy", dashboard.CancelledOrders.ToString("N0"), "Đơn không hoàn tất")
-        @StatCard("Tổng doanh thu", FormatCurrency(dashboard.TotalRevenue), "Chỉ tính đơn đã giao")
-        @StatCard("Phiếu hỗ trợ", dashboard.TotalTickets.ToString("N0"), "Tổng phiếu hỗ trợ")
-        @StatCard("Phiếu đang mở", dashboard.OpenTickets.ToString("N0"), "Cần tiếp tục xử lý")
-        @StatCard("Phiếu đã đóng", dashboard.ClosedTickets.ToString("N0"), "Đã hoàn tất")
+        <div class="col-lg-3 col-sm-6">
+            <div class="modern-card admin-mini-card p-3">
+                <span class="status-badge status-pending">Chờ xác nhận @dashboard.PendingOrders.ToString("N0")</span>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="modern-card admin-mini-card p-3">
+                <span class="status-badge status-confirmed">Đã xác nhận @dashboard.ConfirmedOrders.ToString("N0")</span>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="modern-card admin-mini-card p-3">
+                <span class="status-badge status-shipping">Đang giao @dashboard.ShippingOrders.ToString("N0")</span>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="modern-card admin-mini-card p-3">
+                <span class="status-badge status-cancelled">Đã hủy @dashboard.CancelledOrders.ToString("N0")</span>
+            </div>
+        </div>
     </div>
 
     <div class="row g-3">
         <div class="col-xl-6">
-            <div class="modern-card table-card">
-                <div class="p-4 pb-2">
-                    <h2 class="h5 fw-bold mb-0">Thống kê đơn hàng theo ngày</h2>
+            <div class="modern-card modern-table-wrapper slide-up">
+                <div class="p-4 pb-2 d-flex align-items-center gap-3">
+                    <div class="stat-card-icon"><i class="bi bi-calendar3"></i></div>
+                    <div>
+                        <h2 class="h5 fw-bold mb-0">Thống kê đơn hàng theo ngày</h2>
+                        <div class="text-muted small">Doanh thu tính theo đơn đã giao.</div>
+                    </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle modern-table mb-0">
                         <thead>
                             <tr>
                                 <th>Ngày</th>
@@ -61,7 +79,7 @@ else if (dashboard is not null)
                             @if (ordersByDate.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                    <td colspan="3"><div class="empty-state">Chưa có dữ liệu.</div></td>
                                 </tr>
                             }
                             else
@@ -71,7 +89,7 @@ else if (dashboard is not null)
                                     <tr>
                                         <td>@item.Date.ToString("dd/MM/yyyy")</td>
                                         <td>@item.TotalOrders.ToString("N0")</td>
-                                        <td>@FormatCurrency(item.Revenue)</td>
+                                        <td class="fw-bold">@FormatCurrency(item.Revenue)</td>
                                     </tr>
                                 }
                             }
@@ -82,12 +100,16 @@ else if (dashboard is not null)
         </div>
 
         <div class="col-xl-6">
-            <div class="modern-card table-card">
-                <div class="p-4 pb-2">
-                    <h2 class="h5 fw-bold mb-0">Thống kê đơn hàng theo tháng</h2>
+            <div class="modern-card modern-table-wrapper slide-up">
+                <div class="p-4 pb-2 d-flex align-items-center gap-3">
+                    <div class="stat-card-icon"><i class="bi bi-bar-chart-line"></i></div>
+                    <div>
+                        <h2 class="h5 fw-bold mb-0">Thống kê đơn hàng theo tháng</h2>
+                        <div class="text-muted small">Theo dõi xu hướng xử lý đơn hàng.</div>
+                    </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle modern-table mb-0">
                         <thead>
                             <tr>
                                 <th>Năm</th>
@@ -100,7 +122,7 @@ else if (dashboard is not null)
                             @if (ordersByMonth.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                    <td colspan="4"><div class="empty-state">Chưa có dữ liệu.</div></td>
                                 </tr>
                             }
                             else
@@ -111,7 +133,7 @@ else if (dashboard is not null)
                                         <td>@item.Year</td>
                                         <td>@item.Month</td>
                                         <td>@item.TotalOrders.ToString("N0")</td>
-                                        <td>@FormatCurrency(item.Revenue)</td>
+                                        <td class="fw-bold">@FormatCurrency(item.Revenue)</td>
                                     </tr>
                                 }
                             }
@@ -179,14 +201,15 @@ else if (dashboard is not null)
 
     private static string FormatCurrency(decimal value)
     {
-        return $"{value:N0} VND";
+        return $"{value:N0} đ";
     }
 
-    private static RenderFragment StatCard(string label, string value, string note) => @<div class="col-sm-6 col-xl-3">
-        <div class="stat-card h-100">
-            <div class="stat-label">@label</div>
-            <div class="stat-value">@value</div>
-            <div class="text-muted small">@note</div>
+    private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-sm-6 col-xl-4 col-xxl-2">
+        <div class="stat-card hover-lift h-100">
+            <div class="stat-card-icon"><i class="bi @icon"></i></div>
+            <div class="stat-card-title">@label</div>
+            <div class="stat-card-value">@value</div>
+            <div class="stat-card-description">@note</div>
         </div>
     </div>;
 }

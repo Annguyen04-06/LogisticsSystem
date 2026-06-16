@@ -13,7 +13,9 @@
         <h1 class="page-title">Đơn hàng người bán</h1>
         <p class="page-subtitle">Xác nhận đơn hàng và gán người giao hàng cho đơn đã xác nhận.</p>
     </div>
-    <button class="btn btn-outline-primary" @onclick="LoadOrdersAsync">Tải lại</button>
+    <button class="btn btn-soft-primary" @onclick="LoadOrdersAsync">
+        <i class="bi bi-arrow-repeat"></i> Tải lại
+    </button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
@@ -32,12 +34,12 @@
 
 @if (isLoading)
 {
-    <div class="modern-card p-4 text-center text-muted">Đang tải đơn hàng...</div>
+    <div class="loading-state">Đang tải dữ liệu...</div>
 }
 else
 {
-    <div class="modern-card table-card">
-        <table class="table table-hover align-middle">
+    <div class="modern-card table-card modern-table-wrapper">
+        <table class="table table-hover align-middle modern-table">
             <thead>
                 <tr>
                     <th>Mã đơn</th>
@@ -54,7 +56,7 @@ else
                 @if (orders.Count == 0)
                 {
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng cần xử lý.</td>
+                        <td colspan="8"><div class="empty-state">Chưa có dữ liệu.</div></td>
                     </tr>
                 }
                 else
@@ -75,14 +77,14 @@ else
                             <td class="text-end">
                                 @if (order.Status == "Pending")
                                 {
-                                    <button class="btn btn-sm btn-success me-1" @onclick="() => ConfirmOrderAsync(order.Id)">
-                                        Xác nhận đơn
+                                    <button class="btn btn-sm btn-soft-success action-btn me-1" @onclick="() => ConfirmOrderAsync(order.Id)">
+                                        <i class="bi bi-check-circle"></i> Xác nhận đơn
                                     </button>
                                 }
                                 @if (order.Status == "Confirmed")
                                 {
-                                    <button class="btn btn-sm btn-primary" @onclick="() => AssignShipperAsync(order.Id)">
-                                        Gán người giao hàng
+                                    <button class="btn btn-sm btn-soft-primary action-btn" @onclick="() => AssignShipperAsync(order.Id)">
+                                        <i class="bi bi-truck"></i> Gán người giao hàng
                                     </button>
                                 }
                             </td>

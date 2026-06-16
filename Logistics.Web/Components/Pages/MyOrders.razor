@@ -9,7 +9,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Đơn hàng của tôi</h1>
-        <p class="page-subtitle">Theo dõi trạng thái đơn hàng và chi tiết sản phẩm đã đặt.</p>
+        <p class="page-subtitle">Theo dõi trạng thái xử lý và giao hàng.</p>
     </div>
 </div>
 
@@ -25,31 +25,40 @@
 
 @if (isLoading)
 {
-    <div class="modern-card p-4 text-center text-muted">Đang tải đơn hàng...</div>
+    <div class="loading-state">Đang tải dữ liệu...</div>
 }
 else if (orders.Count == 0)
 {
-    <div class="modern-card p-4 text-center text-muted">Bạn chưa có đơn hàng nào.</div>
+    <div class="empty-state">Chưa có dữ liệu.</div>
 }
 else
 {
-    <div class="d-grid gap-3">
+    <div class="d-grid gap-3 fade-in">
         @foreach (var order in orders)
         {
-            <div class="modern-card p-4">
+            <div class="modern-card customer-order-card hover-lift p-4">
                 <div class="d-flex flex-wrap justify-content-between gap-3 mb-3">
-                    <div>
-                        <h2 class="h5 fw-bold mb-1">Mã đơn #@order.Id</h2>
-                        <div class="text-muted small">Ngày tạo: @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
-                        <div class="text-muted small">Người bán: @order.SellerName</div>
+                    <div class="d-flex gap-3">
+                        <div class="product-card-icon">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                        <div>
+                            <h2 class="h5 fw-bold mb-1">Mã đơn #@order.Id</h2>
+                            <div class="text-muted small">Ngày tạo: @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                            <div class="text-muted small">Người bán: @order.SellerName</div>
+                        </div>
                     </div>
                     <div class="text-end">
                         <span class="status-badge @GetStatusBadgeClass(order.Status)">@GetVietnameseStatus(order.Status)</span>
                         @if (order.Status == "Pending")
                         {
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-warning" @onclick="() => CancelOrderAsync(order.Id)">Hủy</button>
-                                <button class="btn btn-sm btn-primary ms-1" @onclick="() => GoToPayment(order.Id)">Thanh toán</button>
+                            <div class="mt-2 d-flex justify-content-end gap-2">
+                                <button class="btn btn-sm btn-soft-warning action-btn" @onclick="() => CancelOrderAsync(order.Id)">
+                                    <i class="bi bi-x-circle"></i> Hủy
+                                </button>
+                                <button class="btn btn-sm btn-gradient-primary action-btn" @onclick="() => GoToPayment(order.Id)">
+                                    <i class="bi bi-wallet2"></i> Thanh toán
+                                </button>
                             </div>
                         }
                     </div>
@@ -58,46 +67,48 @@ else
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <div class="stat-card">
-                            <div class="stat-label">Tổng tiền</div>
-                            <div class="stat-value">@order.TotalAmount.ToString("N0")</div>
+                            <div class="stat-card-title">Tổng tiền</div>
+                            <div class="stat-card-value">@FormatMoney(order.TotalAmount)</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="stat-card">
-                            <div class="stat-label">Giảm giá</div>
-                            <div class="stat-value">@order.DiscountAmount.ToString("N0")</div>
+                            <div class="stat-card-title">Giảm giá</div>
+                            <div class="stat-card-value">@FormatMoney(order.DiscountAmount)</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="stat-card">
-                            <div class="stat-label">Thành tiền</div>
-                            <div class="stat-value">@order.FinalAmount.ToString("N0")</div>
+                            <div class="stat-card-title">Thành tiền</div>
+                            <div class="stat-card-value">@FormatMoney(order.FinalAmount)</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Sản phẩm</th>
-                                <th>Số lượng</th>
-                                <th>Đơn giá</th>
-                                <th>Thành tiền</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var detail in order.Details)
-                            {
+                <div class="modern-table-wrapper">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle modern-table mb-0">
+                            <thead>
                                 <tr>
-                                    <td>@detail.ProductName</td>
-                                    <td>@detail.Quantity</td>
-                                    <td>@detail.UnitPrice.ToString("N0") VND</td>
-                                    <td>@detail.TotalPrice.ToString("N0") VND</td>
+                                    <th>Sản phẩm</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn giá</th>
+                                    <th>Thành tiền</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach (var detail in order.Details)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@detail.ProductName</td>
+                                        <td>@detail.Quantity</td>
+                                        <td>@FormatMoney(detail.UnitPrice)</td>
+                                        <td class="fw-bold">@FormatMoney(detail.TotalPrice)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         }
@@ -151,7 +162,7 @@ else
             return;
         }
 
-        errorMessage = response?.Message ?? "Không thể hủy đơn hàng.";
+        errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
     }
 
     private void GoToPayment(int orderId)
@@ -183,5 +194,10 @@ else
             "Cancelled" => "status-cancelled",
             _ => "text-bg-secondary"
         };
+    }
+
+    private static string FormatMoney(decimal value)
+    {
+        return $"{value:N0} đ";
     }
 }

@@ -4,44 +4,74 @@
 
 <PageTitle>Đăng nhập</PageTitle>
 
-<div class="auth-page">
-    <div class="modern-card auth-card p-4">
-        <div class="text-center mb-4">
-            <div class="brand-mark mx-auto mb-3 text-white">LS</div>
-            <h1 class="h4 fw-bold">Hệ thống quản lý Logistics</h1>
-            <p class="text-muted mb-0">Đăng nhập để tiếp tục</p>
-        </div>
+<div class="auth-page auth-page-modern">
+    <div class="auth-floating-shape shape-one"></div>
+    <div class="auth-floating-shape shape-two"></div>
 
-        @if (!string.IsNullOrWhiteSpace(successMessage))
-        {
-            <div class="alert alert-success">@successMessage</div>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(errorMessage))
-        {
-            <div class="alert alert-danger">@errorMessage</div>
-        }
-
-        <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
-
-            <div class="mb-3">
-                <label class="form-label">Email</label>
-                <InputText class="form-control" @bind-Value="loginRequest.Email" placeholder="Nhập email" />
+    <div class="auth-card auth-shell slide-up">
+        <section class="auth-brand">
+            <div class="auth-brand-mark">LS</div>
+            <h1>Hệ thống quản lý Logistics</h1>
+            <p>Quản lý đơn hàng, giao hàng, thanh toán và báo cáo trong một nền tảng.</p>
+            <div class="auth-brand-points">
+                <span><i class="bi bi-box-seam"></i> Đơn hàng</span>
+                <span><i class="bi bi-truck"></i> Giao hàng</span>
+                <span><i class="bi bi-wallet2"></i> Thanh toán</span>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Mật khẩu</label>
-                <InputText class="form-control" type="password" @bind-Value="loginRequest.Password" placeholder="Nhập mật khẩu" />
-            </div>
-            <button class="btn btn-primary w-100" type="submit" disabled="@isSubmitting">
-                @(isSubmitting ? "Đang đăng nhập..." : "Đăng nhập")
-            </button>
-        </EditForm>
+        </section>
 
-        <div class="text-center mt-3">
-            <a href="register">Chưa có tài khoản? Đăng ký ngay</a>
-        </div>
+        <section class="auth-form">
+            <div class="mb-4">
+                <h2 class="auth-title">Đăng nhập</h2>
+                <p class="auth-subtitle">Đăng nhập để tiếp tục sử dụng hệ thống.</p>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(successMessage))
+            {
+                <div class="alert alert-success">@successMessage</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+
+            <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <InputText class="form-control auth-input" @bind-Value="loginRequest.Email" placeholder="Nhập email" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mật khẩu</label>
+                    <div class="input-group auth-password-group">
+                        <InputText class="form-control auth-input" type="@(showPassword ? "text" : "password")" @bind-Value="loginRequest.Password" placeholder="Nhập mật khẩu" />
+                        <button class="btn btn-outline-secondary auth-password-toggle"
+                                type="button"
+                                title="@(showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")"
+                                @onclick="TogglePasswordVisibility">
+                            <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn auth-button w-100" type="submit" disabled="@isSubmitting">
+                    @(isSubmitting ? "Đang xử lý..." : "Đăng nhập")
+                </button>
+            </EditForm>
+
+            <div class="text-center mt-3">
+                <a class="auth-link" href="forgot-password">Quên mật khẩu?</a>
+            </div>
+
+            <div class="text-center mt-4">
+                <span class="text-muted">Chưa có tài khoản?</span>
+                <a class="auth-link" href="register">Đăng ký ngay</a>
+            </div>
+        </section>
     </div>
 </div>
 
@@ -50,6 +80,12 @@
     private string? errorMessage;
     private string? successMessage;
     private bool isSubmitting;
+    private bool showPassword;
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
 
     private async Task HandleLogin()
     {
@@ -72,7 +108,7 @@
         }
         catch
         {
-            errorMessage = "Đăng nhập thất bại. Vui lòng kiểm tra email hoặc mật khẩu.";
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
         }
         finally
         {

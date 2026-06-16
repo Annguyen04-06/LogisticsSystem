@@ -2,31 +2,50 @@
 @implements IDisposable
 @inject AuthService AuthService
 @inject AuthStateService AuthState
+@inject ProfileApiService ProfileApi
+@inject NavigationManager Navigation
 
 <div class="app-shell">
-    <aside class="app-sidebar">
+    <aside class="sidebar">
         <NavMenu />
     </aside>
 
-    <main class="app-main">
+    <div class="app-main">
         <header class="topbar">
             <div>
-                <div class="text-muted small">Hệ thống quản lý Logistics</div>
-                <strong>Bảng điều khiển vận hành</strong>
+                <div class="topbar-kicker">Hệ thống quản lý Logistics</div>
+                <h1 class="topbar-title">Bảng điều khiển vận hành</h1>
             </div>
-            <div class="d-flex align-items-center gap-3">
-                <span class="badge rounded-pill text-bg-light border">API: localhost:5203</span>
-                <div class="text-end">
-                    <div class="fw-semibold">@AuthState.DisplayName</div>
-                    <div class="text-muted small">@AuthStateService.GetVietnameseRoleName(AuthState.CurrentRole)</div>
+
+            <div class="topbar-user">
+                <div class="user-avatar">
+                    @if (!string.IsNullOrWhiteSpace(AuthState.CurrentUser?.AvatarUrl))
+                    {
+                        <img src="@AuthState.CurrentUser.AvatarUrl" alt="Ảnh đại diện" />
+                    }
+                    else
+                    {
+                        <span>@GetInitial(AuthState.DisplayName)</span>
+                    }
                 </div>
+                <div class="user-meta">
+                    <div class="user-name">@AuthState.DisplayName</div>
+                    <span class="role-badge">@AuthStateService.GetVietnameseRoleName(AuthState.CurrentRole)</span>
+                </div>
+                @if (AuthState.IsAuthenticated)
+                {
+                    <button class="btn btn-outline-danger btn-sm btn-modern" type="button" @onclick="LogoutAsync">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Đăng xuất</span>
+                    </button>
+                }
             </div>
         </header>
 
-        <div class="main-content">
+        <main class="page-container fade-in">
             @Body
-        </div>
-    </main>
+        </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -52,10 +71,47 @@
 
         sessionLoaded = true;
         await AuthService.LoadSessionAsync();
+
+        if (AuthState.IsAuthenticated)
+        {
+            await LoadProfileForTopbarAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadProfileForTopbarAsync()
+    {
+        try
+        {
+            var response = await ProfileApi.GetMyProfileAsync();
+
+            if (response?.Success == true && response.Data is not null)
+            {
+                AuthState.UpdateProfile(response.Data.FullName, response.Data.AvatarUrl);
+            }
+        }
+        catch
+        {
+            // Avatar is optional for the topbar; page-level requests handle their own errors.
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login");
     }
 
     public void Dispose()
     {
         AuthState.OnChange -= StateHasChanged;
+    }
+
+    private static string GetInitial(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "?"
+            : value.Trim()[0].ToString().ToUpper();
     }
 }

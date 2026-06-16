@@ -11,5 +11,6 @@ public class ProductDto
     public string CategoryName { get; set; } = string.Empty;
     public int SellerId { get; set; }
     public string SellerName { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
     public bool IsActive { get; set; }
 }

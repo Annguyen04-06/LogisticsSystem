@@ -37,6 +37,23 @@ public class AuthService(
         return await httpResponse.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>();
     }
 
+    public async Task<ApiResponse<ForgotPasswordResponse>?> ForgotPasswordAsync(string email)
+    {
+        var request = new ForgotPasswordRequest
+        {
+            Email = email
+        };
+
+        var httpResponse = await apiClient.PostAsync("api/Auth/forgot-password", request);
+        return await httpResponse.Content.ReadFromJsonAsync<ApiResponse<ForgotPasswordResponse>>();
+    }
+
+    public async Task<ApiResponse<string>?> ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        var httpResponse = await apiClient.PostAsync("api/Auth/reset-password", request);
+        return await httpResponse.Content.ReadFromJsonAsync<ApiResponse<string>>();
+    }
+
     public async Task LoadSessionAsync()
     {
         var currentUser = await tokenStorage.GetCurrentUserAsync();

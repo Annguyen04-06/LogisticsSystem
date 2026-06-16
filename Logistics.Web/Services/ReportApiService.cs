@@ -14,6 +14,21 @@ public class ReportApiService(ApiClientService apiClient)
         return await apiClient.GetAsync<ApiResponse<List<TopProductReportDto>>>("api/reports/admin/top-products");
     }
 
+    public async Task<ApiResponse<List<TopSellerReportDto>>?> GetTopSellersAsync()
+    {
+        return await apiClient.GetAsync<ApiResponse<List<TopSellerReportDto>>>("api/reports/admin/top-sellers");
+    }
+
+    public async Task<ApiResponse<List<OrderStatusStatisticsDto>>?> GetOrderStatusStatisticsAsync()
+    {
+        return await apiClient.GetAsync<ApiResponse<List<OrderStatusStatisticsDto>>>("api/reports/admin/order-status-statistics");
+    }
+
+    public async Task<ApiResponse<List<OrderStatisticsByMonthDto>>?> GetOrdersByMonthAsync()
+    {
+        return await apiClient.GetAsync<ApiResponse<List<OrderStatisticsByMonthDto>>>("api/dashboard/orders-by-month");
+    }
+
     public async Task<ApiResponse<SellerRevenueReportDto>?> GetSellerRevenueAsync()
     {
         return await apiClient.GetAsync<ApiResponse<SellerRevenueReportDto>>("api/reports/seller/revenue");

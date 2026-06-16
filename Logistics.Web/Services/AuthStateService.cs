@@ -18,6 +18,18 @@ public class AuthStateService
         NotifyStateChanged();
     }
 
+    public void UpdateProfile(string fullName, string? avatarUrl)
+    {
+        if (CurrentUser is null)
+        {
+            return;
+        }
+
+        CurrentUser.FullName = fullName;
+        CurrentUser.AvatarUrl = avatarUrl;
+        NotifyStateChanged();
+    }
+
     public void Clear()
     {
         CurrentUser = null;

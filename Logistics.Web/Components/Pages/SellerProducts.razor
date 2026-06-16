@@ -4,6 +4,7 @@
 @inject AuthStateService AuthState
 @inject SellerProductApiService SellerProductApiService
 @inject CategoryApiService CategoryApiService
+@inject UploadApiService UploadApi
 @inject NavigationManager Navigation
 
 <PageTitle>Quản lý sản phẩm</PageTitle>
@@ -13,7 +14,9 @@
         <h1 class="page-title">Quản lý sản phẩm</h1>
         <p class="page-subtitle">Thêm, cập nhật và ngừng bán sản phẩm của người bán.</p>
     </div>
-    <button class="btn btn-primary" @onclick="StartCreate">Tạo sản phẩm</button>
+    <button class="btn btn-gradient-primary" @onclick="StartCreate">
+        <i class="bi bi-plus-circle"></i> Tạo sản phẩm
+    </button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
@@ -26,7 +29,7 @@
     <div class="alert alert-danger">@errorMessage</div>
 }
 
-<div class="modern-card p-4 mb-3">
+<div class="modern-card form-modern p-4 mb-3">
     <h2 class="h5 fw-bold mb-3">@(editingProductId.HasValue ? "Cập nhật sản phẩm" : "Tạo sản phẩm")</h2>
     <EditForm Model="@productForm" OnValidSubmit="SaveProductAsync">
         <DataAnnotationsValidator />
@@ -59,6 +62,18 @@
                 <label class="form-label">Số lượng</label>
                 <InputNumber class="form-control" @bind-Value="productForm.Quantity" />
             </div>
+            @if (!editingProductId.HasValue)
+            {
+                <div class="col-md-4">
+                    <label class="form-label">Ảnh sản phẩm</label>
+                    <InputFile class="form-control" OnChange="OnCreateProductImageSelected" accept=".jpg,.jpeg,.png,.webp" />
+                    <div class="form-text">Hỗ trợ JPG, PNG, WEBP. Dung lượng tối đa 3MB.</div>
+                    @if (createProductImage is not null)
+                    {
+                        <div class="text-muted small mt-1">Đã chọn: @createProductImage.Name</div>
+                    }
+                </div>
+            }
             @if (editingProductId.HasValue)
             {
                 <div class="col-md-4 d-flex align-items-end">
@@ -71,7 +86,7 @@
         </div>
 
         <div class="d-flex gap-2 mt-4">
-            <button class="btn btn-success" type="submit" disabled="@isSaving">
+            <button class="btn btn-gradient-success" type="submit" disabled="@isSaving">
                 @(isSaving ? "Đang lưu..." : "Lưu")
             </button>
             @if (editingProductId.HasValue)
@@ -84,14 +99,15 @@
 
 @if (isLoading)
 {
-    <div class="modern-card p-4 text-center text-muted">Đang tải sản phẩm...</div>
+    <div class="loading-state">Đang tải dữ liệu...</div>
 }
 else
 {
-    <div class="modern-card table-card">
-        <table class="table table-hover align-middle">
+    <div class="modern-card table-card modern-table-wrapper">
+        <table class="table table-hover align-middle modern-table">
             <thead>
                 <tr>
+                    <th>Ảnh</th>
                     <th>Mã sản phẩm</th>
                     <th>Tên sản phẩm</th>
                     <th>Danh mục</th>
@@ -105,7 +121,7 @@ else
                 @if (products.Count == 0)
                 {
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Chưa có sản phẩm nào.</td>
+                        <td colspan="8"><div class="empty-state">Chưa có dữ liệu.</div></td>
                     </tr>
                 }
                 else
@@ -113,6 +129,18 @@ else
                     @foreach (var product in products)
                     {
                         <tr>
+                            <td>
+                                <div class="seller-product-thumb">
+                                    @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                                    {
+                                        <img src="@product.ImageUrl" alt="@product.Name" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-box-seam"></i>
+                                    }
+                                </div>
+                            </td>
                             <td>#@product.Id</td>
                             <td>@product.Name</td>
                             <td>@product.CategoryName</td>
@@ -124,8 +152,17 @@ else
                                 </span>
                             </td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-warning me-1" @onclick="() => StartEdit(product)">Sửa</button>
-                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteProductAsync(product.Id)">Xóa</button>
+                                <div class="seller-image-upload mb-2">
+                                    <InputFile class="form-control form-control-sm" OnChange="args => OnProductImageSelected(product.Id, args)" accept=".jpg,.jpeg,.png,.webp" />
+                                    <button class="btn btn-sm btn-soft-primary action-btn mt-2"
+                                            type="button"
+                                            disabled="@(!selectedProductImages.ContainsKey(product.Id) || uploadingProductId == product.Id)"
+                                            @onclick="() => UploadProductImageAsync(product.Id)">
+                                        <i class="bi bi-cloud-arrow-up"></i> @(uploadingProductId == product.Id ? "Đang xử lý..." : "Đổi ảnh")
+                                    </button>
+                                </div>
+                                <button class="btn btn-sm btn-soft-warning action-btn me-1" @onclick="() => StartEdit(product)"><i class="bi bi-pencil-square"></i> Sửa</button>
+                                <button class="btn btn-sm btn-soft-danger action-btn" @onclick="() => DeleteProductAsync(product.Id)"><i class="bi bi-trash"></i> Xóa</button>
                             </td>
                         </tr>
                     }
@@ -139,7 +176,10 @@ else
     private List<ProductDto> products = [];
     private List<CategoryDto> categories = [];
     private UpdateProductDto productForm = new();
+    private IBrowserFile? createProductImage;
+    private Dictionary<int, IBrowserFile> selectedProductImages = [];
     private int? editingProductId;
+    private int? uploadingProductId;
     private bool isLoading = true;
     private bool isSaving;
     private string? successMessage;
@@ -181,15 +221,22 @@ else
 
     private void StartCreate()
     {
-        editingProductId = null;
-        productForm = new UpdateProductDto { IsActive = true };
+        ResetProductForm();
         successMessage = null;
         errorMessage = null;
+    }
+
+    private void ResetProductForm()
+    {
+        editingProductId = null;
+        productForm = new UpdateProductDto { IsActive = true };
+        createProductImage = null;
     }
 
     private void StartEdit(ProductDto product)
     {
         editingProductId = product.Id;
+        createProductImage = null;
         productForm = new UpdateProductDto
         {
             Name = product.Name,
@@ -197,6 +244,7 @@ else
             Price = product.Price,
             Quantity = product.Quantity,
             CategoryId = product.CategoryId,
+            ImageUrl = product.ImageUrl,
             IsActive = product.IsActive
         };
         successMessage = null;
@@ -225,16 +273,30 @@ else
             else
             {
                 var createResponse = await SellerProductApiService.CreateAsync(productForm);
-                if (createResponse?.Success != true)
+                if (createResponse?.Success != true || createResponse.Data is null)
                 {
                     errorMessage = createResponse?.Message ?? "Không thể tạo sản phẩm.";
                     return;
                 }
 
                 successMessage = "Tạo sản phẩm thành công.";
+
+                if (createProductImage is not null)
+                {
+                    var uploadResponse = await UploadApi.UploadProductImageAsync(createResponse.Data.Id, createProductImage);
+
+                    if (uploadResponse?.Success == true)
+                    {
+                        successMessage = "Tạo sản phẩm thành công. Tải ảnh sản phẩm thành công.";
+                    }
+                    else
+                    {
+                        errorMessage = uploadResponse?.Message ?? "Sản phẩm đã được tạo nhưng không thể tải ảnh sản phẩm.";
+                    }
+                }
             }
 
-            StartCreate();
+            ResetProductForm();
             await LoadProductsAsync();
         }
         catch
@@ -261,5 +323,55 @@ else
         }
 
         errorMessage = response?.Message ?? "Không thể xóa sản phẩm.";
+    }
+
+    private void OnProductImageSelected(int productId, InputFileChangeEventArgs args)
+    {
+        selectedProductImages[productId] = args.File;
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private void OnCreateProductImageSelected(InputFileChangeEventArgs args)
+    {
+        createProductImage = args.File;
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private async Task UploadProductImageAsync(int productId)
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        if (!selectedProductImages.TryGetValue(productId, out var file))
+        {
+            errorMessage = "Vui lòng chọn file ảnh.";
+            return;
+        }
+
+        try
+        {
+            uploadingProductId = productId;
+            var response = await UploadApi.UploadProductImageAsync(productId, file);
+
+            if (response?.Success == true)
+            {
+                successMessage = "Tải ảnh sản phẩm thành công.";
+                selectedProductImages.Remove(productId);
+                await LoadProductsAsync();
+                return;
+            }
+
+            errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            uploadingProductId = null;
+        }
     }
 }

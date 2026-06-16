@@ -54,6 +54,36 @@ public class SellerRevenueReportDto
     public int DeliveredOrders { get; set; }
 }
 
+public class TopSellerReportDto
+{
+    [JsonPropertyName("sellerId")]
+    public int SellerId { get; set; }
+
+    [JsonPropertyName("sellerName")]
+    public string SellerName { get; set; } = string.Empty;
+
+    [JsonPropertyName("totalOrders")]
+    public int TotalOrders { get; set; }
+
+    [JsonPropertyName("deliveredOrders")]
+    public int DeliveredOrders { get; set; }
+
+    [JsonPropertyName("totalProductsSold")]
+    public int TotalProductsSold { get; set; }
+
+    [JsonPropertyName("totalRevenue")]
+    public decimal TotalRevenue { get; set; }
+}
+
+public class OrderStatusStatisticsDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = string.Empty;
+
+    [JsonPropertyName("count")]
+    public int Count { get; set; }
+}
+
 public class InvoiceDownloadForm
 {
     [Range(1, int.MaxValue, ErrorMessage = "Vui lòng nhập mã đơn hàng.")]

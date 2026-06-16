@@ -27,6 +27,7 @@ public class GetProductByIdQueryHandler(IApplicationDbContext context)
                 CategoryName = category.Name,
                 SellerId = product.SellerId,
                 SellerName = seller.FullName,
+                ImageUrl = product.ImageUrl,
                 IsActive = product.IsActive
             }).FirstOrDefaultAsync(cancellationToken);
 

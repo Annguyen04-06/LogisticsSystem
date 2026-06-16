@@ -1,0 +1,416 @@
+@page "/profile"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject ProfileApiService ProfileApi
+@inject UploadApiService UploadApi
+@inject NavigationManager Navigation
+
+<PageTitle>Hồ sơ cá nhân</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Hồ sơ cá nhân</h1>
+        <p class="page-subtitle">Quản lý thông tin tài khoản, ảnh đại diện và mật khẩu.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success fade-in">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger fade-in">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="loading-state">Đang tải dữ liệu...</div>
+}
+else if (profile is null)
+{
+    <div class="empty-state">Chưa có dữ liệu.</div>
+}
+else
+{
+    <div class="row g-4 fade-in">
+        <div class="col-xl-4">
+            <div class="modern-card profile-card p-4 text-center hover-lift">
+                <div class="profile-avatar mx-auto mb-3">
+                    @if (!string.IsNullOrWhiteSpace(profile.AvatarUrl))
+                    {
+                        <img src="@profile.AvatarUrl" alt="Ảnh đại diện" />
+                    }
+                    else
+                    {
+                        <span>@GetInitial(profile.FullName)</span>
+                    }
+                </div>
+
+                <h2 class="h4 fw-bold mb-1">@profile.FullName</h2>
+                <div class="text-muted">@profile.Email</div>
+                <span class="role-badge mt-3">@DisplayRole(profile.Role)</span>
+
+                <div class="mt-4 text-start">
+                    <label class="form-label">Ảnh đại diện</label>
+                    <InputFile class="form-control" OnChange="OnAvatarSelected" accept=".jpg,.jpeg,.png,.webp" />
+                    <button class="btn btn-gradient-primary w-100 mt-3" type="button" disabled="@(selectedAvatar is null || isUploadingAvatar)" @onclick="UploadAvatarAsync">
+                        <i class="bi bi-cloud-arrow-up"></i> @(isUploadingAvatar ? "Đang xử lý..." : "Tải ảnh đại diện")
+                    </button>
+                </div>
+            </div>
+
+            <div class="modern-card p-4 mt-4">
+                <h3 class="h5 fw-bold mb-3">Liên kết nhanh</h3>
+                <div class="d-grid gap-2">
+                    @foreach (var link in GetQuickLinks(profile.Role))
+                    {
+                        <a class="btn btn-soft-primary action-btn justify-content-start" href="@link.Url">
+                            <i class="bi @link.Icon"></i> @link.Label
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8">
+            <div class="modern-card p-4 mb-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="stat-card-icon"><i class="bi bi-person-vcard"></i></div>
+                    <div>
+                        <h2 class="h5 fw-bold mb-0">Thông tin tài khoản</h2>
+                        <div class="text-muted small">Thông tin định danh trong hệ thống.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6"><strong>Họ và tên:</strong> @profile.FullName</div>
+                    <div class="col-md-6"><strong>Email:</strong> @profile.Email</div>
+                    <div class="col-md-6"><strong>Vai trò:</strong> @DisplayRole(profile.Role)</div>
+                    <div class="col-md-6"><strong>Số điện thoại:</strong> @profile.PhoneNumber</div>
+                    <div class="col-12"><strong>Địa chỉ:</strong> @profile.Address</div>
+                    <div class="col-md-6">
+                        <strong>Trạng thái tài khoản:</strong>
+                        <span class="status-badge @(profile.IsActive ? "status-delivered" : "status-cancelled")">
+                            @(profile.IsActive ? "Đang hoạt động" : "Đã vô hiệu hóa")
+                        </span>
+                    </div>
+                    <div class="col-md-6"><strong>Ngày tạo:</strong> @profile.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+            </div>
+
+            <div class="modern-card form-modern p-4 mb-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="stat-card-icon"><i class="bi bi-pencil-square"></i></div>
+                    <div>
+                        <h2 class="h5 fw-bold mb-0">Cập nhật hồ sơ</h2>
+                        <div class="text-muted small">Email và vai trò không thể thay đổi tại đây.</div>
+                    </div>
+                </div>
+
+                <EditForm Model="@profileForm" OnValidSubmit="UpdateProfileAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Họ và tên</label>
+                            <InputText class="form-control" @bind-Value="profileForm.FullName" />
+                            <ValidationMessage For="@(() => profileForm.FullName)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Số điện thoại</label>
+                            <InputText class="form-control" @bind-Value="profileForm.PhoneNumber" />
+                            <ValidationMessage For="@(() => profileForm.PhoneNumber)" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Địa chỉ</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="profileForm.Address" />
+                            <ValidationMessage For="@(() => profileForm.Address)" />
+                        </div>
+                    </div>
+
+                    <button class="btn btn-gradient-success mt-4" type="submit" disabled="@isSavingProfile">
+                        <i class="bi bi-save"></i> @(isSavingProfile ? "Đang xử lý..." : "Cập nhật hồ sơ")
+                    </button>
+                </EditForm>
+            </div>
+
+            <div class="modern-card form-modern p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="stat-card-icon"><i class="bi bi-shield-lock"></i></div>
+                    <div>
+                        <h2 class="h5 fw-bold mb-0">Đổi mật khẩu</h2>
+                        <div class="text-muted small">Mật khẩu mới cần đủ mạnh để bảo vệ tài khoản.</div>
+                    </div>
+                </div>
+
+                <EditForm Model="@passwordForm" OnValidSubmit="ChangePasswordAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Mật khẩu hiện tại</label>
+                            <div class="input-group">
+                                <InputText class="form-control" type="@(showCurrentPassword ? "text" : "password")" @bind-Value="passwordForm.CurrentPassword" />
+                                <button class="btn btn-outline-secondary" type="button" title="@(showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showCurrentPassword = !showCurrentPassword">
+                                    <i class="bi @(showCurrentPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => passwordForm.CurrentPassword)" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Mật khẩu mới</label>
+                            <div class="input-group">
+                                <InputText class="form-control" type="@(showNewPassword ? "text" : "password")" @bind-Value="passwordForm.NewPassword" />
+                                <button class="btn btn-outline-secondary" type="button" title="@(showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showNewPassword = !showNewPassword">
+                                    <i class="bi @(showNewPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => passwordForm.NewPassword)" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Xác nhận mật khẩu mới</label>
+                            <div class="input-group">
+                                <InputText class="form-control" type="@(showConfirmPassword ? "text" : "password")" @bind-Value="passwordForm.ConfirmPassword" />
+                                <button class="btn btn-outline-secondary" type="button" title="@(showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showConfirmPassword = !showConfirmPassword">
+                                    <i class="bi @(showConfirmPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => passwordForm.ConfirmPassword)" />
+                        </div>
+                    </div>
+
+                    <button class="btn btn-gradient-primary mt-4" type="submit" disabled="@isChangingPassword">
+                        <i class="bi bi-key"></i> @(isChangingPassword ? "Đang xử lý..." : "Đổi mật khẩu")
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private ProfileDto? profile;
+    private UpdateProfileRequest profileForm = new();
+    private ChangePasswordRequest passwordForm = new();
+    private IBrowserFile? selectedAvatar;
+    private bool isLoading = true;
+    private bool isUploadingAvatar;
+    private bool isSavingProfile;
+    private bool isChangingPassword;
+    private bool showCurrentPassword;
+    private bool showNewPassword;
+    private bool showConfirmPassword;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadProfileAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadProfileAsync()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await ProfileApi.GetMyProfileAsync();
+
+            if (response?.Success == true && response.Data is not null)
+            {
+                profile = response.Data;
+                profileForm = new UpdateProfileRequest
+                {
+                    FullName = profile.FullName,
+                    PhoneNumber = profile.PhoneNumber,
+                    Address = profile.Address
+                };
+                AuthState.UpdateProfile(profile.FullName, profile.AvatarUrl);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OnAvatarSelected(InputFileChangeEventArgs args)
+    {
+        selectedAvatar = args.File;
+        ClearMessages();
+    }
+
+    private async Task UploadAvatarAsync()
+    {
+        if (selectedAvatar is null)
+        {
+            errorMessage = "Vui lòng chọn file ảnh.";
+            return;
+        }
+
+        ClearMessages();
+        isUploadingAvatar = true;
+
+        try
+        {
+            var response = await UploadApi.UploadAvatarAsync(selectedAvatar);
+
+            if (response?.Success == true)
+            {
+                successMessage = "Tải ảnh đại diện thành công.";
+                selectedAvatar = null;
+                await LoadProfileAsync();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isUploadingAvatar = false;
+        }
+    }
+
+    private async Task UpdateProfileAsync()
+    {
+        ClearMessages();
+        isSavingProfile = true;
+
+        try
+        {
+            var response = await ProfileApi.UpdateProfileAsync(profileForm);
+
+            if (response?.Success == true && response.Data is not null)
+            {
+                successMessage = "Cập nhật hồ sơ thành công.";
+                profile = response.Data;
+                AuthState.UpdateProfile(profile.FullName, profile.AvatarUrl);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isSavingProfile = false;
+        }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        ClearMessages();
+        isChangingPassword = true;
+
+        try
+        {
+            var response = await ProfileApi.ChangePasswordAsync(passwordForm);
+
+            if (response?.Success == true)
+            {
+                successMessage = "Đổi mật khẩu thành công.";
+                passwordForm = new ChangePasswordRequest();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private void ClearMessages()
+    {
+        successMessage = null;
+        errorMessage = null;
+    }
+
+    private static string DisplayRole(string role)
+    {
+        return role switch
+        {
+            "Customer" => "Khách hàng",
+            "Seller" => "Người bán",
+            "Shipper" => "Người giao hàng",
+            "Admin" => "Quản trị viên",
+            _ => role
+        };
+    }
+
+    private static string GetInitial(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "?"
+            : value.Trim()[0].ToString().ToUpper();
+    }
+
+    private static List<QuickLink> GetQuickLinks(string role)
+    {
+        return role switch
+        {
+            "Customer" =>
+            [
+                new("Đơn hàng của tôi", "/my-orders", "bi-receipt"),
+                new("Giỏ hàng", "/cart", "bi-cart3"),
+                new("Thanh toán", "/payments", "bi-wallet2")
+            ],
+            "Seller" =>
+            [
+                new("Bảng điều khiển người bán", "/seller-dashboard", "bi-speedometer2"),
+                new("Quản lý sản phẩm", "/seller-products", "bi-box-seam"),
+                new("Đơn hàng người bán", "/seller-orders", "bi-receipt")
+            ],
+            "Shipper" =>
+            [
+                new("Đơn cần giao", "/shipper-orders", "bi-truck"),
+                new("Lịch sử giao hàng", "/delivery-history", "bi-clock-history")
+            ],
+            "Admin" =>
+            [
+                new("Bảng điều khiển quản trị", "/admin-dashboard", "bi-speedometer2"),
+                new("Người dùng", "/admin-users", "bi-people"),
+                new("Báo cáo", "/admin-reports", "bi-file-earmark-bar-graph")
+            ],
+            _ => []
+        };
+    }
+
+    private sealed record QuickLink(string Label, string Url, string Icon);
+}

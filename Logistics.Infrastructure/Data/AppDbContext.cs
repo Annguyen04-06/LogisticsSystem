@@ -1,6 +1,7 @@
 using Logistics.Application.Interfaces;
 using Logistics.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Logistics.Infrastructure.Data;
 
@@ -24,6 +25,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TicketReply> TicketReplies => Set<TicketReply>();
     public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
     public DbSet<StockTransaction> StockTransactions => Set<StockTransaction>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken)
+    {
+        return Database.BeginTransactionAsync(cancellationToken);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -245,6 +252,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne<Product>()
             .WithMany()
             .HasForeignKey(transaction => transaction.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasOne(token => token.User)
+            .WithMany()
+            .HasForeignKey(token => token.UserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

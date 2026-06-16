@@ -10,6 +10,7 @@ public class TokenStorageService(IJSRuntime jsRuntime)
     private const string FullNameKey = "logistics_full_name";
     private const string EmailKey = "logistics_email";
     private const string RoleKey = "logistics_role";
+    private const string AvatarUrlKey = "logistics_avatar_url";
 
     public async Task SaveAsync(CurrentUser user)
     {
@@ -18,6 +19,7 @@ public class TokenStorageService(IJSRuntime jsRuntime)
         await jsRuntime.InvokeVoidAsync("localStorage.setItem", FullNameKey, user.FullName);
         await jsRuntime.InvokeVoidAsync("localStorage.setItem", EmailKey, user.Email);
         await jsRuntime.InvokeVoidAsync("localStorage.setItem", RoleKey, user.Role);
+        await jsRuntime.InvokeVoidAsync("localStorage.setItem", AvatarUrlKey, user.AvatarUrl ?? string.Empty);
     }
 
     public async Task<CurrentUser?> GetCurrentUserAsync()
@@ -33,6 +35,7 @@ public class TokenStorageService(IJSRuntime jsRuntime)
         var fullName = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", FullNameKey);
         var email = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", EmailKey);
         var role = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", RoleKey);
+        var avatarUrl = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", AvatarUrlKey);
 
         return new CurrentUser
         {
@@ -40,7 +43,8 @@ public class TokenStorageService(IJSRuntime jsRuntime)
             FullName = fullName ?? string.Empty,
             Email = email ?? string.Empty,
             Role = role ?? string.Empty,
-            Token = token
+            Token = token,
+            AvatarUrl = string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl
         };
     }
 
@@ -51,5 +55,6 @@ public class TokenStorageService(IJSRuntime jsRuntime)
         await jsRuntime.InvokeVoidAsync("localStorage.removeItem", FullNameKey);
         await jsRuntime.InvokeVoidAsync("localStorage.removeItem", EmailKey);
         await jsRuntime.InvokeVoidAsync("localStorage.removeItem", RoleKey);
+        await jsRuntime.InvokeVoidAsync("localStorage.removeItem", AvatarUrlKey);
     }
 }

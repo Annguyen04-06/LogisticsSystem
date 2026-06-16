@@ -7,14 +7,16 @@
 @inject IJSRuntime JsRuntime
 @inject NavigationManager Navigation
 
-<PageTitle>Báo cáo</PageTitle>
+<PageTitle>Báo cáo thống kê</PageTitle>
 
 <div class="page-header">
     <div>
-        <h1 class="page-title">Báo cáo</h1>
-        <p class="page-subtitle">Xem thống kê doanh thu và tải báo cáo Excel, PDF từ hệ thống.</p>
+        <h1 class="page-title">Báo cáo thống kê</h1>
+        <p class="page-subtitle">Xuất Excel, PDF và theo dõi hiệu quả kinh doanh.</p>
     </div>
-    <button class="btn btn-outline-primary" type="button" @onclick="ReloadAsync">Tải lại</button>
+    <button class="btn btn-soft-primary action-btn" type="button" @onclick="ReloadAsync">
+        <i class="bi bi-arrow-repeat"></i> Tải lại
+    </button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
@@ -29,30 +31,162 @@
 
 @if (isLoading)
 {
-    <div class="modern-card p-4 text-center text-muted">Đang tải dữ liệu...</div>
+    <div class="loading-state">Đang tải dữ liệu...</div>
 }
 else
 {
     @if (IsAdmin && adminRevenue is not null)
     {
-        <div class="row g-3 mb-4">
-            @StatCard("Tổng doanh thu", FormatCurrency(adminRevenue.TotalRevenue), "Chỉ tính đơn đã giao")
-            @StatCard("Tổng đơn hàng", adminRevenue.TotalOrders.ToString("N0"), "Tất cả đơn hàng")
-            @StatCard("Đơn đã giao", adminRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất")
-            @StatCard("Đơn chờ xử lý", adminRevenue.PendingOrders.ToString("N0"), "Đơn đang chờ")
-            @StatCard("Đơn đã hủy", adminRevenue.CancelledOrders.ToString("N0"), "Đơn không hoàn tất")
+        <div class="row g-3 mb-4 fade-in">
+            @StatCard("Tổng doanh thu", FormatCurrency(adminRevenue.TotalRevenue), "Chỉ tính đơn đã giao", "bi-cash-stack")
+            @StatCard("Tổng đơn hàng", adminRevenue.TotalOrders.ToString("N0"), "Tất cả đơn hàng", "bi-receipt")
+            @StatCard("Đơn đã giao", adminRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất", "bi-check2-circle")
+            @StatCard("Đơn chờ xử lý", adminRevenue.PendingOrders.ToString("N0"), "Đơn đang chờ", "bi-hourglass-split")
+            @StatCard("Đơn đã hủy", adminRevenue.CancelledOrders.ToString("N0"), "Đơn không hoàn tất", "bi-x-circle")
         </div>
 
-        <div class="modern-card table-card mb-4">
-            <div class="p-4 pb-2 d-flex flex-wrap justify-content-between gap-2 align-items-center">
-                <h2 class="h5 fw-bold mb-0">Sản phẩm bán chạy</h2>
+        @if (BestSeller is not null)
+        {
+            <div class="modern-card p-4 mb-4 slide-up">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-card-icon"><i class="bi bi-award"></i></div>
+                        <div>
+                            <h2 class="h5 fw-bold mb-0">Người bán doanh thu cao nhất</h2>
+                            <div class="text-muted small">@BestSeller.SellerName</div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="money-text">@FormatCurrency(BestSeller.TotalRevenue)</div>
+                        <div class="text-muted small">Đơn đã giao: @BestSeller.DeliveredOrders.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="row g-3 mb-4">
+            <div class="col-xl-6">
+                <div class="modern-card p-4 h-100 slide-up">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="stat-card-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                        <div>
+                            <h2 class="h5 fw-bold mb-0">Biểu đồ doanh thu theo tháng</h2>
+                            <div class="text-muted small">Doanh thu từ các đơn đã giao.</div>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="revenueByMonthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="modern-card p-4 h-100 slide-up">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="stat-card-icon"><i class="bi bi-pie-chart"></i></div>
+                        <div>
+                            <h2 class="h5 fw-bold mb-0">Đơn hàng theo trạng thái</h2>
+                            <div class="text-muted small">Phân bố trạng thái đơn hàng.</div>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="orderStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="modern-card p-4 slide-up">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="stat-card-icon"><i class="bi bi-bar-chart-line"></i></div>
+                        <div>
+                            <h2 class="h5 fw-bold mb-0">Top người bán theo doanh thu</h2>
+                            <div class="text-muted small">Xếp hạng theo doanh thu đơn đã giao.</div>
+                        </div>
+                    </div>
+                    <div class="chart-box chart-box-wide">
+                        <canvas id="topSellersChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modern-card form-section p-4 mb-4 slide-up">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon"><i class="bi bi-download"></i></div>
+                    <div>
+                        <h2 class="h5 fw-bold mb-0">Xuất báo cáo</h2>
+                        <div class="text-muted small">Tải dữ liệu Excel và hóa đơn PDF.</div>
+                    </div>
+                </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-success" type="button" @onclick="DownloadOrdersExcelAsync" disabled="@isDownloading">Xuất Excel đơn hàng</button>
-                    <button class="btn btn-success" type="button" @onclick="DownloadAdminRevenueExcelAsync" disabled="@isDownloading">Xuất Excel doanh thu</button>
+                    <button class="btn btn-gradient-success action-btn" type="button" @onclick="DownloadOrdersExcelAsync" disabled="@isDownloading">
+                        <i class="bi bi-file-earmark-excel"></i> Xuất Excel đơn hàng
+                    </button>
+                    <button class="btn btn-gradient-success action-btn" type="button" @onclick="DownloadAdminRevenueExcelAsync" disabled="@isDownloading">
+                        <i class="bi bi-file-earmark-excel"></i> Xuất Excel doanh thu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modern-card modern-table-wrapper mb-4 slide-up">
+            <div class="p-4 pb-2 d-flex align-items-center gap-3">
+                <div class="stat-card-icon"><i class="bi bi-shop"></i></div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Top người bán</h2>
+                    <div class="text-muted small">Người bán có doanh thu cao nhất trong hệ thống.</div>
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle modern-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mã người bán</th>
+                            <th>Người bán</th>
+                            <th>Tổng đơn</th>
+                            <th>Đơn đã giao</th>
+                            <th>Sản phẩm đã bán</th>
+                            <th>Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (topSellers.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6"><div class="empty-state">Chưa có dữ liệu.</div></td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var seller in topSellers)
+                            {
+                                <tr>
+                                    <td>#@seller.SellerId</td>
+                                    <td class="fw-semibold">@seller.SellerName</td>
+                                    <td>@seller.TotalOrders.ToString("N0")</td>
+                                    <td>@seller.DeliveredOrders.ToString("N0")</td>
+                                    <td>@seller.TotalProductsSold.ToString("N0")</td>
+                                    <td class="fw-bold">@FormatCurrency(seller.TotalRevenue)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="modern-card modern-table-wrapper mb-4 slide-up">
+            <div class="p-4 pb-2 d-flex align-items-center gap-3">
+                <div class="stat-card-icon"><i class="bi bi-trophy"></i></div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Sản phẩm bán chạy</h2>
+                    <div class="text-muted small">Xếp hạng theo số lượng đã bán.</div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle modern-table mb-0">
                     <thead>
                         <tr>
                             <th>Mã sản phẩm</th>
@@ -65,7 +199,7 @@ else
                         @if (topProducts.Count == 0)
                         {
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu.</td>
+                                <td colspan="4"><div class="empty-state">Chưa có dữ liệu.</div></td>
                             </tr>
                         }
                         else
@@ -76,7 +210,7 @@ else
                                     <td>#@product.ProductId</td>
                                     <td class="fw-semibold">@product.ProductName</td>
                                     <td>@product.TotalSold.ToString("N0")</td>
-                                    <td>@FormatCurrency(product.TotalRevenue)</td>
+                                    <td class="fw-bold">@FormatCurrency(product.TotalRevenue)</td>
                                 </tr>
                             }
                         }
@@ -89,23 +223,29 @@ else
     @if (IsSeller && sellerRevenue is not null)
     {
         <div class="row g-3 mb-4">
-            @StatCard("Doanh thu của tôi", FormatCurrency(sellerRevenue.TotalRevenue), sellerRevenue.SellerName)
-            @StatCard("Tổng đơn hàng", sellerRevenue.TotalOrders.ToString("N0"), "Đơn hàng của người bán")
-            @StatCard("Đơn đã giao", sellerRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất")
+            @StatCard("Doanh thu của tôi", FormatCurrency(sellerRevenue.TotalRevenue), sellerRevenue.SellerName, "bi-cash-stack")
+            @StatCard("Tổng đơn hàng", sellerRevenue.TotalOrders.ToString("N0"), "Đơn hàng của người bán", "bi-receipt")
+            @StatCard("Đơn đã giao", sellerRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất", "bi-check2-circle")
         </div>
 
-        <div class="modern-card p-4 mb-4">
+        <div class="modern-card form-section p-4 mb-4">
             <h2 class="h5 fw-bold mb-3">Báo cáo doanh thu cá nhân</h2>
-            <button class="btn btn-success" type="button" @onclick="DownloadSellerRevenueExcelAsync" disabled="@isDownloading">
-                Xuất Excel doanh thu cá nhân
+            <button class="btn btn-gradient-success action-btn" type="button" @onclick="DownloadSellerRevenueExcelAsync" disabled="@isDownloading">
+                <i class="bi bi-file-earmark-excel"></i> Xuất Excel doanh thu cá nhân
             </button>
         </div>
     }
 
     @if (CanDownloadInvoice)
     {
-        <div class="modern-card p-4">
-            <h2 class="h5 fw-bold mb-3">Tải hóa đơn PDF</h2>
+        <div class="modern-card form-modern p-4 slide-up">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="stat-card-icon"><i class="bi bi-filetype-pdf"></i></div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Tải hóa đơn PDF</h2>
+                    <div class="text-muted small">Nhập mã đơn hàng để tải hóa đơn.</div>
+                </div>
+            </div>
             <EditForm Model="@invoiceForm" OnValidSubmit="DownloadInvoicePdfAsync">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
@@ -116,7 +256,9 @@ else
                         <InputNumber class="form-control" @bind-Value="invoiceForm.OrderId" />
                     </div>
                     <div class="col-md-auto">
-                        <button class="btn btn-warning" type="submit" disabled="@isDownloading">Tải hóa đơn PDF</button>
+                        <button class="btn btn-soft-warning action-btn" type="submit" disabled="@isDownloading">
+                            <i class="bi bi-filetype-pdf"></i> Tải hóa đơn PDF
+                        </button>
                     </div>
                 </div>
             </EditForm>
@@ -128,11 +270,17 @@ else
     private RevenueReportDto? adminRevenue;
     private SellerRevenueReportDto? sellerRevenue;
     private List<TopProductReportDto> topProducts = [];
+    private List<TopSellerReportDto> topSellers = [];
+    private List<OrderStatusStatisticsDto> orderStatusStatistics = [];
+    private List<OrderStatisticsByMonthDto> ordersByMonth = [];
     private InvoiceDownloadForm invoiceForm = new();
     private bool isLoading = true;
     private bool isDownloading;
+    private bool shouldRenderCharts;
     private string? successMessage;
     private string? errorMessage;
+
+    private TopSellerReportDto? BestSeller => topSellers.FirstOrDefault();
 
     private bool IsAdmin => AuthState.CurrentRole == "Admin";
     private bool IsSeller => AuthState.CurrentRole == "Seller";
@@ -144,21 +292,26 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (firstRender)
         {
+            await AuthService.LoadSessionAsync();
+
+            if (!AuthState.IsAuthenticated)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            await LoadReportsAsync();
+            StateHasChanged();
             return;
         }
 
-        await AuthService.LoadSessionAsync();
-
-        if (!AuthState.IsAuthenticated)
+        if (shouldRenderCharts)
         {
-            Navigation.NavigateTo("/login");
-            return;
+            shouldRenderCharts = false;
+            await RenderChartsAsync();
         }
-
-        await LoadReportsAsync();
-        StateHasChanged();
     }
 
     private async Task LoadReportsAsync(bool clearMessages = true)
@@ -176,6 +329,9 @@ else
             {
                 var revenueResponse = await ReportApi.GetAdminRevenueAsync();
                 var productsResponse = await ReportApi.GetTopProductsAsync();
+                var sellersResponse = await ReportApi.GetTopSellersAsync();
+                var statusResponse = await ReportApi.GetOrderStatusStatisticsAsync();
+                var monthResponse = await ReportApi.GetOrdersByMonthAsync();
 
                 if (revenueResponse?.Success == true)
                 {
@@ -194,6 +350,35 @@ else
                 {
                     errorMessage = productsResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
                 }
+
+                if (sellersResponse?.Success == true)
+                {
+                    topSellers = sellersResponse.Data ?? [];
+                }
+                else
+                {
+                    errorMessage = sellersResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                }
+
+                if (statusResponse?.Success == true)
+                {
+                    orderStatusStatistics = statusResponse.Data ?? [];
+                }
+                else
+                {
+                    errorMessage = statusResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                }
+
+                if (monthResponse?.Success == true)
+                {
+                    ordersByMonth = monthResponse.Data ?? [];
+                }
+                else
+                {
+                    errorMessage = monthResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                }
+
+                shouldRenderCharts = true;
             }
             else if (IsSeller)
             {
@@ -221,7 +406,48 @@ else
 
     private Task ReloadAsync()
     {
-        return LoadReportsAsync();
+        return ReloadReportsAsync();
+    }
+
+    private async Task ReloadReportsAsync()
+    {
+        await LoadReportsAsync();
+        StateHasChanged();
+    }
+
+    private async Task RenderChartsAsync()
+    {
+        if (!IsAdmin)
+        {
+            return;
+        }
+
+        var monthLabels = ordersByMonth
+            .Select(item => $"{item.Month:00}/{item.Year}")
+            .ToArray();
+        var monthRevenue = ordersByMonth
+            .Select(item => (double)item.Revenue)
+            .ToArray();
+
+        await JsRuntime.InvokeVoidAsync(
+            "renderLineChart",
+            "revenueByMonthChart",
+            monthLabels,
+            monthRevenue,
+            "Doanh thu");
+
+        await JsRuntime.InvokeVoidAsync(
+            "renderDoughnutChart",
+            "orderStatusChart",
+            orderStatusStatistics.Select(item => item.Status).ToArray(),
+            orderStatusStatistics.Select(item => item.Count).ToArray());
+
+        await JsRuntime.InvokeVoidAsync(
+            "renderBarChart",
+            "topSellersChart",
+            topSellers.Select(item => item.SellerName).ToArray(),
+            topSellers.Select(item => (double)item.TotalRevenue).ToArray(),
+            "Doanh thu");
     }
 
     private async Task DownloadOrdersExcelAsync()
@@ -290,14 +516,15 @@ else
 
     private static string FormatCurrency(decimal value)
     {
-        return $"{value:N0} VND";
+        return $"{value:N0} đ";
     }
 
-    private static RenderFragment StatCard(string label, string value, string note) => @<div class="col-sm-6 col-xl">
-        <div class="stat-card h-100">
-            <div class="stat-label">@label</div>
-            <div class="stat-value">@value</div>
-            <div class="text-muted small">@note</div>
+    private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-sm-6 col-xl">
+        <div class="stat-card hover-lift h-100">
+            <div class="stat-card-icon"><i class="bi @icon"></i></div>
+            <div class="stat-card-title">@label</div>
+            <div class="stat-card-value">@value</div>
+            <div class="stat-card-description">@note</div>
         </div>
     </div>;
 }

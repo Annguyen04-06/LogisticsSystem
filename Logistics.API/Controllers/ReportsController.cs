@@ -3,8 +3,10 @@ using Logistics.Application.Features.Reports.Queries.ExportOrderInvoicePdf;
 using Logistics.Application.Features.Reports.Queries.ExportOrdersExcel;
 using Logistics.Application.Features.Reports.Queries.ExportRevenueExcel;
 using Logistics.Application.Features.Reports.Queries.GetAdminRevenueReport;
+using Logistics.Application.Features.Reports.Queries.GetOrderStatusStatistics;
 using Logistics.Application.Features.Reports.Queries.GetSellerRevenueReport;
 using Logistics.Application.Features.Reports.Queries.GetTopProductsReport;
+using Logistics.Application.Features.Reports.Queries.GetTopSellersReport;
 using Logistics.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -48,6 +50,44 @@ public class ReportsController(IMediator mediator) : ControllerBase
         }
 
         var response = await mediator.Send(new GetTopProductsReportQuery(currentUserRole), cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    [HttpGet("admin/top-sellers")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetTopSellers(CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUser(out _, out var currentUserRole))
+        {
+            return Unauthorized();
+        }
+
+        var response = await mediator.Send(new GetTopSellersReportQuery(currentUserRole), cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    [HttpGet("admin/order-status-statistics")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetOrderStatusStatistics(CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUser(out _, out var currentUserRole))
+        {
+            return Unauthorized();
+        }
+
+        var response = await mediator.Send(new GetOrderStatusStatisticsQuery(currentUserRole), cancellationToken);
 
         if (!response.Success)
         {

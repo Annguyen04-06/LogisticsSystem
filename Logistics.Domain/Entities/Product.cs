@@ -10,5 +10,6 @@ public class Product : BaseEntity
     public int Quantity { get; set; }
     public int CategoryId { get; set; }
     public int SellerId { get; set; }
+    public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
 }

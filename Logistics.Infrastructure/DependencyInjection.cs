@@ -26,6 +26,8 @@ public static class DependencyInjection
 
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<ICloudinaryService, CloudinaryService>();
 
         return services;
     }

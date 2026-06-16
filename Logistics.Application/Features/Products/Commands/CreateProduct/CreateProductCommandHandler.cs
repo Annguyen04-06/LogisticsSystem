@@ -48,6 +48,7 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             Quantity = request.Product.Quantity,
             CategoryId = request.Product.CategoryId,
             SellerId = request.CurrentUserId,
+            ImageUrl = request.Product.ImageUrl,
             IsActive = true
         };
 
@@ -65,6 +66,7 @@ public class CreateProductCommandHandler(IApplicationDbContext context)
             CategoryName = category.Name,
             SellerId = product.SellerId,
             SellerName = seller.FullName,
+            ImageUrl = product.ImageUrl,
             IsActive = product.IsActive
         }, "Product created successfully.");
     }

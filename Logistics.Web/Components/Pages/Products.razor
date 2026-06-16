@@ -6,23 +6,36 @@
 @inject AuthStateService AuthState
 @inject NavigationManager Navigation
 
-<PageTitle>Sản phẩm</PageTitle>
+<PageTitle>Danh sách sản phẩm</PageTitle>
 
 <div class="page-header">
     <div>
-        <h1 class="page-title">Sản phẩm</h1>
-        <p class="page-subtitle">Duyệt sản phẩm đang bán và thêm vào giỏ hàng.</p>
+        <h1 class="page-title">Danh sách sản phẩm</h1>
+        <p class="page-subtitle">Tìm kiếm, lựa chọn và thêm sản phẩm vào giỏ hàng.</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-        <input class="form-control" style="min-width: 220px" @bind="searchKeyword" placeholder="Tìm kiếm sản phẩm" />
-        <select class="form-select" style="min-width: 180px" @bind="selectedCategoryId">
-            <option value="0">Tất cả danh mục</option>
-            @foreach (var category in categories)
-            {
-                <option value="@category.Id">@category.Name</option>
-            }
-        </select>
-        <button class="btn btn-primary" @onclick="LoadProductsAsync">Tìm kiếm</button>
+</div>
+
+<div class="search-filter-card mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-lg-5">
+            <label class="form-label">Tìm kiếm</label>
+            <input class="form-control" @bind="searchKeyword" placeholder="Nhập tên sản phẩm" />
+        </div>
+        <div class="col-lg-4">
+            <label class="form-label">Danh mục</label>
+            <select class="form-select" @bind="selectedCategoryId">
+                <option value="0">Tất cả danh mục</option>
+                @foreach (var category in categories)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-lg-3">
+            <button class="btn btn-gradient-primary w-100" @onclick="LoadProductsAsync">
+                <i class="bi bi-search"></i> Tìm kiếm
+            </button>
+        </div>
     </div>
 </div>
 
@@ -38,37 +51,52 @@
 
 @if (isLoading)
 {
-    <div class="modern-card p-4 text-center text-muted">Đang tải sản phẩm...</div>
+    <div class="loading-state">Đang tải dữ liệu...</div>
 }
 else if (products.Count == 0)
 {
-    <div class="modern-card p-4 text-center text-muted">Không có sản phẩm phù hợp.</div>
+    <div class="empty-state">Chưa có dữ liệu.</div>
 }
 else
 {
-    <div class="row g-3">
+    <div class="row g-3 fade-in">
         @foreach (var product in products)
         {
             <div class="col-md-6 col-xl-4">
-                <div class="modern-card p-3 h-100">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="modern-card customer-product-card hover-lift h-100">
+                    <div class="product-image-frame mb-3">
+                        @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                        {
+                            <img src="@GetProductImageUrl(product.ImageUrl)" alt="@product.Name" />
+                        }
+                        else
+                        {
+                            <div class="product-image-placeholder">
+                                <i class="bi bi-box-seam"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <span class="badge text-bg-info">@product.CategoryName</span>
+                    </div>
+
+                    <h2 class="h5 fw-bold mb-2">@product.Name</h2>
+                    <p class="text-muted product-description">@product.Description</p>
+
+                    <div class="d-flex justify-content-between align-items-end gap-3 mb-3">
                         <div>
-                            <h2 class="h5 fw-bold mb-1">@product.Name</h2>
-                            <div class="text-muted small">@product.CategoryName</div>
+                            <div class="money-text">@FormatMoney(product.Price)</div>
+                            <div class="text-muted small">Tồn kho: @product.Quantity</div>
+                            <div class="text-muted small">Người bán: @product.SellerName</div>
                         </div>
-                        <span class="badge text-bg-success">Đang bán</span>
                     </div>
-                    <p class="text-muted">@product.Description</p>
-                    <div class="mb-2">
-                        <div><strong>@product.Price.ToString("N0") VND</strong></div>
-                        <div class="text-muted small">Tồn kho: @product.Quantity</div>
-                        <div class="text-muted small">Người bán: @product.SellerName</div>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <InputNumber class="form-control form-control-sm" style="max-width: 90px"
+
+                    <div class="d-flex align-items-center gap-2 mt-auto">
+                        <InputNumber class="form-control form-control-sm quantity-input"
                                      @bind-Value="product.QuantityToAdd" min="1" />
-                        <button class="btn btn-sm btn-primary" @onclick="() => AddToCartAsync(product)">
-                            Thêm vào giỏ hàng
+                        <button class="btn btn-sm btn-gradient-primary action-btn flex-grow-1" @onclick="() => AddToCartAsync(product)">
+                            <i class="bi bi-cart3"></i> Thêm vào giỏ hàng
                         </button>
                     </div>
                 </div>
@@ -158,11 +186,31 @@ else
                 return;
             }
 
-            errorMessage = response?.Message ?? "Không thể thêm sản phẩm vào giỏ hàng.";
+            errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
         }
         catch
         {
-            errorMessage = "Không thể thêm sản phẩm vào giỏ hàng.";
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
         }
+    }
+
+    private static string FormatMoney(decimal value)
+    {
+        return $"{value:N0} đ";
+    }
+
+    private static string GetProductImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            return string.Empty;
+        }
+
+        if (Uri.TryCreate(imageUrl, UriKind.Absolute, out _))
+        {
+            return imageUrl;
+        }
+
+        return $"http://localhost:5203/{imageUrl.TrimStart('/')}";
     }
 }

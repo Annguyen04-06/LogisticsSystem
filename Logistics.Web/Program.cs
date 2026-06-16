@@ -20,9 +20,12 @@ builder.Services.AddScoped<SellerOrderApiService>();
 builder.Services.AddScoped<DeliveryApiService>();
 builder.Services.AddScoped<AdminDashboardApiService>();
 builder.Services.AddScoped<CouponApiService>();
+builder.Services.AddScoped<UserApiService>();
 builder.Services.AddScoped<TicketApiService>();
 builder.Services.AddScoped<PaymentApiService>();
 builder.Services.AddScoped<ReportApiService>();
+builder.Services.AddScoped<ProfileApiService>();
+builder.Services.AddScoped<UploadApiService>();
 builder.Services.AddHttpClient<ApiClientService>(client =>
 {
     client.BaseAddress = new Uri("http://localhost:5203/");

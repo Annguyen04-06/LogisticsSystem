@@ -29,6 +29,15 @@ public class ApiClientService(HttpClient httpClient, AuthStateService authState)
         return await httpClient.DeleteAsync(url, cancellationToken);
     }
 
+    public async Task<HttpResponseMessage> PostMultipartAsync(
+        string url,
+        MultipartFormDataContent content,
+        CancellationToken cancellationToken = default)
+    {
+        ApplyAuthorizationHeader();
+        return await httpClient.PostAsync(url, content, cancellationToken);
+    }
+
     public async Task<byte[]> GetBytesAsync(string url, CancellationToken cancellationToken = default)
     {
         ApplyAuthorizationHeader();
