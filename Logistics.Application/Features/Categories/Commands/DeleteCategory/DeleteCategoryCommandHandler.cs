@@ -13,7 +13,7 @@ public class DeleteCategoryCommandHandler(IApplicationDbContext context)
     {
         if (request.CurrentUserRole != UserRole.Admin)
         {
-            return ApiResponse<bool>.Fail("Only admin can delete categories.");
+            return ApiResponse<bool>.Fail("Chỉ quản trị viên mới có quyền xóa danh mục.");
         }
 
         var category = await context.Categories
@@ -21,7 +21,7 @@ public class DeleteCategoryCommandHandler(IApplicationDbContext context)
 
         if (category is null)
         {
-            return ApiResponse<bool>.Fail("Category does not exist.");
+            return ApiResponse<bool>.Fail("Không tìm thấy danh mục.");
         }
 
         var hasProducts = await context.Products
@@ -29,14 +29,18 @@ public class DeleteCategoryCommandHandler(IApplicationDbContext context)
 
         if (hasProducts)
         {
-            return ApiResponse<bool>.Fail("Cannot delete category because it has products.");
+            category.IsActive = false;
+            category.UpdatedAt = DateTime.UtcNow;
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            return ApiResponse<bool>.Ok(true, "Danh mục đã có sản phẩm nên được chuyển sang trạng thái ngừng sử dụng.");
         }
 
-        category.IsActive = false;
-        category.UpdatedAt = DateTime.UtcNow;
+        context.Categories.Remove(category);
 
         await context.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse<bool>.Ok(true, "Category deleted successfully.");
+        return ApiResponse<bool>.Ok(true, "Xóa danh mục thành công.");
     }
 }

@@ -35,6 +35,9 @@ public class WalletDto
     [JsonPropertyName("userId")]
     public int UserId { get; set; }
 
+    [JsonPropertyName("customerId")]
+    public int? CustomerId { get; set; }
+
     [JsonPropertyName("balance")]
     public decimal Balance { get; set; }
 }
@@ -54,4 +57,25 @@ public class PayOrderDto
 
     [JsonPropertyName("method")]
     public string Method { get; set; } = "Wallet";
+}
+
+public class BankingQrDto
+{
+    [JsonPropertyName("bankCode")]
+    public string BankCode { get; set; } = string.Empty;
+
+    [JsonPropertyName("accountNumber")]
+    public string AccountNumber { get; set; } = string.Empty;
+
+    [JsonPropertyName("accountName")]
+    public string AccountName { get; set; } = string.Empty;
+
+    [JsonPropertyName("amount")]
+    public decimal Amount { get; set; }
+
+    [JsonPropertyName("addInfo")]
+    public string AddInfo { get; set; } = string.Empty;
+
+    [JsonPropertyName("qrImageUrl")]
+    public string QrImageUrl { get; set; } = string.Empty;
 }

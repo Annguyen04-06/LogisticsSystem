@@ -1,4 +1,5 @@
 @page "/products"
+@implements IDisposable
 @inject ProductApiService ProductApiService
 @inject CategoryApiService CategoryApiService
 @inject CartApiService CartApiService
@@ -8,22 +9,40 @@
 
 <PageTitle>Danh sách sản phẩm</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Danh sách sản phẩm</h1>
         <p class="page-subtitle">Tìm kiếm, lựa chọn và thêm sản phẩm vào giỏ hàng.</p>
     </div>
 </div>
 
-<div class="search-filter-card mb-4">
-    <div class="row g-3 align-items-end">
-        <div class="col-lg-5">
-            <label class="form-label">Tìm kiếm</label>
-            <input class="form-control" @bind="searchKeyword" placeholder="Nhập tên sản phẩm" />
+<div class="search-filter-card customer-filter-panel modern-card mb-4 slide-up">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="stat-icon">
+            <i class="bi bi-funnel"></i>
         </div>
-        <div class="col-lg-4">
+        <div>
+            <h2 class="h5 fw-bold mb-0">Bộ lọc sản phẩm</h2>
+            <div class="text-muted small">Tìm nhanh sản phẩm theo tên, danh mục, giá và tình trạng tồn kho.</div>
+        </div>
+    </div>
+
+    <div class="row g-3 align-items-end">
+        <div class="col-xl-4 col-lg-6">
+            <label class="form-label">Tìm kiếm</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input class="form-control"
+                       value="@searchKeyword"
+                       @oninput="OnSearchInputAsync"
+                       @onkeydown="HandleSearchKeyDown"
+                       placeholder="Nhập tên sản phẩm" />
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-lg-6">
             <label class="form-label">Danh mục</label>
-            <select class="form-select" @bind="selectedCategoryId">
+            <select class="form-select" value="@selectedCategoryId" @onchange="OnCategoryChanged">
                 <option value="0">Tất cả danh mục</option>
                 @foreach (var category in categories)
                 {
@@ -31,88 +50,160 @@
                 }
             </select>
         </div>
-        <div class="col-lg-3">
-            <button class="btn btn-gradient-primary w-100" @onclick="LoadProductsAsync">
-                <i class="bi bi-search"></i> Tìm kiếm
-            </button>
+
+        <div class="col-xl-2 col-lg-6">
+            <label class="form-label">Giá tối thiểu</label>
+            <InputNumber class="form-control" @bind-Value="minPrice" placeholder="0" />
+        </div>
+
+        <div class="col-xl-2 col-lg-6">
+            <label class="form-label">Giá tối đa</label>
+            <InputNumber class="form-control" @bind-Value="maxPrice" placeholder="Không giới hạn" />
+        </div>
+
+        <div class="col-xl-2 col-lg-6">
+            <label class="form-label">Sắp xếp</label>
+            <select class="form-select" value="@sortBy" @onchange="OnSortChanged">
+                <option value="newest">Mới nhất</option>
+                <option value="priceAsc">Giá tăng dần</option>
+                <option value="priceDesc">Giá giảm dần</option>
+                <option value="nameAsc">Tên A-Z</option>
+                <option value="nameDesc">Tên Z-A</option>
+                <option value="bestSelling">Bán chạy</option>
+            </select>
+        </div>
+
+        <div class="col-xl-4 col-lg-6">
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input"
+                       type="checkbox"
+                       id="inStockOnly"
+                       checked="@inStockOnly"
+                       @onchange="OnStockFilterChanged" />
+                <label class="form-check-label" for="inStockOnly">Chỉ hiển thị sản phẩm còn hàng</label>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-6">
+            <div class="d-flex gap-2">
+                <button class="btn btn-gradient-primary action-btn flex-fill" type="button" @onclick="ApplyFilters">
+                    <i class="bi bi-search"></i> Tìm kiếm
+                </button>
+                <button class="btn btn-soft-danger action-btn flex-fill" type="button" @onclick="ClearFilters">
+                    <i class="bi bi-x-circle"></i> Xóa lọc
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success">@successMessage</div>
+    <div class="alert alert-success fade-in">@successMessage</div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger fade-in">@errorMessage</div>
 }
 
 @if (isLoading)
 {
-    <div class="loading-state">Đang tải dữ liệu...</div>
-}
-else if (products.Count == 0)
-{
-    <div class="empty-state">Chưa có dữ liệu.</div>
+    <div class="loading-state">
+        <i class="bi bi-arrow-repeat"></i>
+        Đang tải dữ liệu...
+    </div>
 }
 else
 {
-    <div class="row g-3 fade-in">
-        @foreach (var product in products)
-        {
-            <div class="col-md-6 col-xl-4">
-                <div class="modern-card customer-product-card hover-lift h-100">
-                    <div class="product-image-frame mb-3">
-                        @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
-                        {
-                            <img src="@GetProductImageUrl(product.ImageUrl)" alt="@product.Name" />
-                        }
-                        else
-                        {
-                            <div class="product-image-placeholder">
-                                <i class="bi bi-box-seam"></i>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div class="product-count-pill">
+            <i class="bi bi-grid-3x3-gap"></i>
+            Tìm thấy @products.Count sản phẩm
+        </div>
+        <button class="btn btn-soft-primary action-btn" type="button" @onclick="ReloadProductsAsync">
+            <i class="bi bi-arrow-repeat"></i> Tải lại sản phẩm
+        </button>
+    </div>
+
+    @if (products.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            Không tìm thấy sản phẩm phù hợp.
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 fade-in">
+            @foreach (var product in products)
+            {
+                <div class="col-md-6 col-xl-4">
+                    <div class="modern-card customer-product-card hover-lift h-100">
+                        <div class="product-image-frame mb-3">
+                            @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                            {
+                                <img src="@GetProductImageUrl(product.ImageUrl)" alt="@product.Name" />
+                            }
+                            else
+                            {
+                                <div class="product-image-placeholder">
+                                    <i class="bi bi-box-seam"></i>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                            <span class="status-badge badge-soft-info">@product.CategoryName</span>
+                            <span class="status-badge @(product.Quantity > 0 ? "badge-soft-success" : "badge-soft-secondary")">
+                                @(product.Quantity > 0 ? "Còn hàng" : "Hết hàng")
+                            </span>
+                        </div>
+
+                        <h2 class="h5 fw-bold mb-2">@product.Name</h2>
+                        <p class="text-muted product-description">@product.Description</p>
+
+                        <div class="d-flex justify-content-between align-items-end gap-3 mb-3">
+                            <div>
+                                <div class="money-text currency-value">@FormatMoney(product.Price)</div>
+                                <div class="text-muted small">Tồn kho: @product.Quantity</div>
+                                <div class="text-muted small">Người bán: @product.SellerName</div>
                             </div>
-                        }
-                    </div>
+                        </div>
 
-                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                        <span class="badge text-bg-info">@product.CategoryName</span>
-                    </div>
-
-                    <h2 class="h5 fw-bold mb-2">@product.Name</h2>
-                    <p class="text-muted product-description">@product.Description</p>
-
-                    <div class="d-flex justify-content-between align-items-end gap-3 mb-3">
-                        <div>
-                            <div class="money-text">@FormatMoney(product.Price)</div>
-                            <div class="text-muted small">Tồn kho: @product.Quantity</div>
-                            <div class="text-muted small">Người bán: @product.SellerName</div>
+                        <div class="product-purchase-row mt-auto">
+                            <InputNumber class="form-control form-control-sm quantity-input"
+                                         @bind-Value="product.QuantityToAdd"
+                                         min="1"
+                                         disabled="@(product.Quantity <= 0)" />
+                            <button class="btn btn-sm btn-gradient-primary action-btn"
+                                    type="button"
+                                    disabled="@(product.Quantity <= 0)"
+                                    @onclick="() => AddToCartAsync(product)">
+                                <i class="bi bi-cart3"></i> Thêm vào giỏ hàng
+                            </button>
                         </div>
                     </div>
-
-                    <div class="d-flex align-items-center gap-2 mt-auto">
-                        <InputNumber class="form-control form-control-sm quantity-input"
-                                     @bind-Value="product.QuantityToAdd" min="1" />
-                        <button class="btn btn-sm btn-gradient-primary action-btn flex-grow-1" @onclick="() => AddToCartAsync(product)">
-                            <i class="bi bi-cart3"></i> Thêm vào giỏ hàng
-                        </button>
-                    </div>
                 </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
+    }
 }
 
 @code {
+    private List<ProductDto> allProducts = [];
     private List<ProductDto> products = [];
     private List<CategoryDto> categories = [];
     private string? searchKeyword;
     private int selectedCategoryId;
+    private decimal? minPrice;
+    private decimal? maxPrice;
+    private string sortBy = "newest";
+    private bool inStockOnly;
     private bool isLoading = true;
     private string? successMessage;
     private string? errorMessage;
+    private CancellationTokenSource? searchDebounceCts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,7 +214,7 @@ else
     private async Task LoadCategoriesAsync()
     {
         var response = await CategoryApiService.GetCategoriesAsync();
-        categories = response?.Data ?? [];
+        categories = response?.Data?.Where(category => category.IsActive).ToList() ?? [];
     }
 
     private async Task LoadProductsAsync()
@@ -132,16 +223,148 @@ else
         errorMessage = null;
         isLoading = true;
 
-        int? categoryId = selectedCategoryId == 0 ? null : selectedCategoryId;
-        var response = await ProductApiService.GetProductsAsync(searchKeyword, categoryId);
-        products = response?.Data ?? [];
-
-        foreach (var product in products)
+        try
         {
-            product.QuantityToAdd = 1;
+            var response = await ProductApiService.GetProductsAsync(null, null);
+            allProducts = response?.Data ?? [];
+
+            foreach (var product in allProducts)
+            {
+                if (product.QuantityToAdd <= 0)
+                {
+                    product.QuantityToAdd = 1;
+                }
+            }
+
+            ApplyFilters();
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+            products = [];
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task ReloadProductsAsync()
+    {
+        return LoadProductsAsync();
+    }
+
+    private async Task OnSearchInputAsync(ChangeEventArgs args)
+    {
+        searchKeyword = args.Value?.ToString();
+
+        searchDebounceCts?.Cancel();
+        searchDebounceCts?.Dispose();
+        searchDebounceCts = new CancellationTokenSource();
+        var token = searchDebounceCts.Token;
+
+        try
+        {
+            await Task.Delay(300, token);
+            if (!token.IsCancellationRequested)
+            {
+                ApplyFilters();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    private void HandleSearchKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            ApplyFilters();
+        }
+    }
+
+    private void OnCategoryChanged(ChangeEventArgs args)
+    {
+        selectedCategoryId = int.TryParse(args.Value?.ToString(), out var value) ? value : 0;
+        ApplyFilters();
+    }
+
+    private void OnSortChanged(ChangeEventArgs args)
+    {
+        sortBy = args.Value?.ToString() ?? "newest";
+        ApplyFilters();
+    }
+
+    private void OnStockFilterChanged(ChangeEventArgs args)
+    {
+        inStockOnly = args.Value is bool value && value;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        if (minPrice.HasValue && maxPrice.HasValue && minPrice.Value > maxPrice.Value)
+        {
+            errorMessage = "Khoảng giá không hợp lệ.";
+            return;
         }
 
-        isLoading = false;
+        IEnumerable<ProductDto> query = allProducts;
+
+        if (!string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            var keyword = searchKeyword.Trim();
+            query = query.Where(product =>
+                product.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (selectedCategoryId > 0)
+        {
+            query = query.Where(product => product.CategoryId == selectedCategoryId);
+        }
+
+        if (minPrice.HasValue)
+        {
+            query = query.Where(product => product.Price >= minPrice.Value);
+        }
+
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(product => product.Price <= maxPrice.Value);
+        }
+
+        if (inStockOnly)
+        {
+            query = query.Where(product => product.Quantity > 0);
+        }
+
+        query = sortBy switch
+        {
+            "priceAsc" => query.OrderBy(product => product.Price),
+            "priceDesc" => query.OrderByDescending(product => product.Price),
+            "nameAsc" => query.OrderBy(product => product.Name),
+            "nameDesc" => query.OrderByDescending(product => product.Name),
+            "bestSelling" => query.OrderByDescending(product => product.Id),
+            _ => query.OrderByDescending(product => product.Id)
+        };
+
+        products = query.ToList();
+    }
+
+    private void ClearFilters()
+    {
+        searchKeyword = null;
+        selectedCategoryId = 0;
+        minPrice = null;
+        maxPrice = null;
+        sortBy = "newest";
+        inStockOnly = false;
+        ApplyFilters();
     }
 
     private async Task AddToCartAsync(ProductDto product)
@@ -212,5 +435,11 @@ else
         }
 
         return $"http://localhost:5203/{imageUrl.TrimStart('/')}";
+    }
+
+    public void Dispose()
+    {
+        searchDebounceCts?.Cancel();
+        searchDebounceCts?.Dispose();
     }
 }

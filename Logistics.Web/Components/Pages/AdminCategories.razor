@@ -1,0 +1,300 @@
+@page "/admin-categories"
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject CategoryApiService CategoryApi
+@inject NavigationManager Navigation
+
+<PageTitle>Quản lý danh mục</PageTitle>
+
+<div class="page-header fade-in">
+    <div>
+        <h1 class="page-title">Quản lý danh mục</h1>
+        <p class="page-subtitle">Tạo và cập nhật danh mục sản phẩm trong hệ thống.</p>
+    </div>
+    <button class="btn btn-gradient-primary action-btn" type="button" @onclick="StartCreate">
+        <i class="bi bi-plus-circle"></i> Tạo danh mục
+    </button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success alert-modern fade-in">@successMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
+}
+
+<div class="row g-3">
+    <div class="col-xl-4">
+        <div class="modern-card form-modern admin-category-form p-4 slide-up">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="stat-icon"><i class="bi bi-tags"></i></div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">@(editingCategoryId.HasValue ? "Sửa danh mục" : "Thêm danh mục")</h2>
+                    <div class="text-muted small">Quản lý nhóm sản phẩm hiển thị trong cửa hàng.</div>
+                </div>
+            </div>
+
+            <EditForm Model="@categoryForm" OnValidSubmit="SaveCategoryAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <label class="form-label">Tên danh mục</label>
+                <InputText class="form-control" @bind-Value="categoryForm.Name" />
+                <ValidationMessage For="@(() => categoryForm.Name)" />
+
+                <label class="form-label mt-3">Mô tả</label>
+                <InputTextArea class="form-control" rows="4" @bind-Value="categoryForm.Description" />
+
+                @if (editingCategoryId.HasValue)
+                {
+                    <div class="form-check form-switch mt-3">
+                        <InputCheckbox class="form-check-input" @bind-Value="categoryForm.IsActive" />
+                        <label class="form-check-label">Đang sử dụng</label>
+                    </div>
+                }
+
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-gradient-success action-btn" type="submit" disabled="@isSaving">
+                        <i class="bi bi-save"></i> @(isSaving ? "Đang lưu..." : editingCategoryId.HasValue ? "Cập nhật" : "Tạo danh mục")
+                    </button>
+                    @if (editingCategoryId.HasValue)
+                    {
+                        <button class="btn btn-soft-secondary action-btn" type="button" @onclick="StartCreate">
+                            <i class="bi bi-x-circle"></i> Hủy
+                        </button>
+                    }
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="modern-card modern-table-wrapper admin-category-table slide-up">
+            <div class="admin-card-header">
+                <div class="stat-icon"><i class="bi bi-folder2-open"></i></div>
+                <div>
+                    <h2>Danh sách danh mục</h2>
+                    <p>Bao gồm cả danh mục đang sử dụng và ngừng sử dụng.</p>
+                </div>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle modern-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mã danh mục</th>
+                                <th>Tên danh mục</th>
+                                <th>Mô tả</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (categories.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="5"><div class="empty-state"><i class="bi bi-inbox"></i> Chưa có dữ liệu.</div></td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var category in categories)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">#@category.Id</td>
+                                        <td class="fw-semibold">@category.Name</td>
+                                        <td class="text-muted">@category.Description</td>
+                                        <td>
+                                            <span class="status-badge @(category.IsActive ? "badge-soft-success" : "badge-soft-secondary")">
+                                                @(category.IsActive ? "Đang sử dụng" : "Ngừng sử dụng")
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="admin-row-actions">
+                                                <button class="btn btn-sm btn-soft-warning action-btn" type="button" @onclick="() => StartEdit(category)">
+                                                    <i class="bi bi-pencil-square"></i> Sửa
+                                                </button>
+                                                <button class="btn btn-sm btn-soft-danger action-btn" type="button" @onclick="() => DeleteCategoryAsync(category.Id)">
+                                                    <i class="bi bi-trash"></i> Xóa
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CategoryDto> categories = [];
+    private UpdateCategoryDto categoryForm = new();
+    private int? editingCategoryId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthService.LoadSessionAsync();
+
+        if (!AuthState.IsAuthenticated || AuthState.CurrentRole != "Admin")
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadCategoriesAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await CategoryApi.GetCategoriesAsync(includeInactive: true);
+
+            if (response?.Success == true)
+            {
+                categories = response.Data ?? [];
+                errorMessage = null;
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveCategoryAsync()
+    {
+        ClearMessages();
+
+        try
+        {
+            isSaving = true;
+
+            if (editingCategoryId.HasValue)
+            {
+                var response = await CategoryApi.UpdateAsync(editingCategoryId.Value, categoryForm);
+
+                if (response?.Success == true)
+                {
+                    StartCreate();
+                    successMessage = "Cập nhật danh mục thành công.";
+                    await LoadCategoriesAsync();
+                }
+                else
+                {
+                    errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                }
+            }
+            else
+            {
+                var request = new CreateCategoryDto
+                {
+                    Name = categoryForm.Name,
+                    Description = categoryForm.Description
+                };
+
+                var response = await CategoryApi.CreateAsync(request);
+
+                if (response?.Success == true)
+                {
+                    StartCreate();
+                    successMessage = "Tạo danh mục thành công.";
+                    await LoadCategoriesAsync();
+                }
+                else
+                {
+                    errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                }
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteCategoryAsync(int id)
+    {
+        ClearMessages();
+
+        try
+        {
+            var response = await CategoryApi.DeleteAsync(id);
+
+            if (response?.Success == true)
+            {
+                successMessage = response.Message ?? "Xóa danh mục thành công.";
+                await LoadCategoriesAsync();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+    }
+
+    private void StartCreate()
+    {
+        editingCategoryId = null;
+        categoryForm = new UpdateCategoryDto { IsActive = true };
+        ClearMessages();
+    }
+
+    private void StartEdit(CategoryDto category)
+    {
+        editingCategoryId = category.Id;
+        categoryForm = new UpdateCategoryDto
+        {
+            Name = category.Name,
+            Description = category.Description,
+            IsActive = category.IsActive
+        };
+        ClearMessages();
+    }
+
+    private void ClearMessages()
+    {
+        successMessage = null;
+        errorMessage = null;
+    }
+}

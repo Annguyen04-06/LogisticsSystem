@@ -3,153 +3,289 @@
 @inject AuthStateService AuthState
 @inject PaymentApiService PaymentApi
 @inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
 
 <PageTitle>Thanh toán</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Thanh toán</h1>
-        <p class="page-subtitle">Quản lý ví điện tử, nạp tiền và thanh toán đơn hàng.</p>
+        <p class="page-subtitle">Quản lý ví điện tử, nạp tiền bằng QR và thanh toán đơn hàng.</p>
     </div>
-    <button class="btn btn-soft-primary action-btn" type="button" @onclick="ReloadAsync">
+    <button class="btn btn-soft-primary action-btn" type="button" @onclick="ReloadAsync" disabled="@isLoading">
         <i class="bi bi-arrow-repeat"></i> Tải lại
     </button>
 </div>
 
+@if (isLoading)
+{
+    <div class="loading-state mb-3">
+        <i class="bi bi-arrow-repeat"></i>
+        Đang tải dữ liệu...
+    </div>
+}
+
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success">@successMessage</div>
+    <div class="alert alert-success alert-modern fade-in">@successMessage</div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
-@if (isLoading)
-{
-    <div class="loading-state">Đang tải dữ liệu...</div>
-}
-else
-{
-    <div class="row g-3 mb-4">
-        <div class="col-xl-5">
-            <div class="modern-card wallet-card hover-lift h-100">
+<div class="row g-4 mb-4">
+    <div class="col-xl-4">
+        <div class="modern-card payment-wallet-card hover-lift h-100 slide-up">
+            <div class="d-flex align-items-start justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-3">
                     <div class="wallet-icon">
                         <i class="bi bi-wallet2"></i>
                     </div>
                     <div>
-                        <div class="text-white-50 fw-semibold">Số dư ví</div>
-                        <div class="wallet-balance">@FormatCurrency(wallet?.Balance ?? 0)</div>
-                        <div class="text-white-50 small">Ví điện tử của khách hàng</div>
+                        <div class="payment-wallet-title">Số dư ví</div>
+                        <div class="payment-wallet-value wallet-balance-value">@FormatCurrency(walletBalance)</div>
+                        <div class="payment-wallet-description">Số tiền hiện có trong ví điện tử của bạn.</div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-xl-7">
-            <div class="row g-3">
-                <div class="col-lg-6">
-                    <div class="modern-card form-section p-4 h-100">
-                        <h2 class="h5 fw-bold mb-3">Nạp ví</h2>
-                        <EditForm Model="@depositForm" OnValidSubmit="DepositWalletAsync">
-                            <DataAnnotationsValidator />
-                            <ValidationSummary />
-
-                            <label class="form-label">Số tiền nạp</label>
-                            <InputNumber class="form-control" @bind-Value="depositForm.Amount" />
-
-                            <button class="btn btn-gradient-success w-100 mt-3" type="submit" disabled="@isSubmitting">
-                                <i class="bi bi-plus-circle"></i> @(isSubmitting ? "Đang xử lý..." : "Nạp ví")
-                            </button>
-                        </EditForm>
-                    </div>
+            @if (isWalletLoading)
+            {
+                <div class="small text-muted mt-3">
+                    <i class="bi bi-arrow-repeat"></i> Đang tải số dư ví...
                 </div>
-
-                <div class="col-lg-6">
-                    <div class="modern-card form-section p-4 h-100">
-                        <h2 class="h5 fw-bold mb-3">Thanh toán đơn hàng</h2>
-                        <EditForm Model="@payForm" OnValidSubmit="PayOrderAsync">
-                            <DataAnnotationsValidator />
-                            <ValidationSummary />
-
-                            <label class="form-label">Mã đơn hàng</label>
-                            <InputNumber class="form-control" @bind-Value="payForm.OrderId" />
-
-                            <label class="form-label mt-3">Phương thức thanh toán</label>
-                            <InputSelect class="form-select" @bind-Value="payForm.Method">
-                                <option value="COD">Thanh toán khi nhận hàng</option>
-                                <option value="Wallet">Ví điện tử</option>
-                                <option value="BankingDemo">Chuyển khoản giả lập</option>
-                            </InputSelect>
-
-                            <button class="btn btn-gradient-primary w-100 mt-3" type="submit" disabled="@isSubmitting">
-                                <i class="bi bi-credit-card"></i> @(isSubmitting ? "Đang xử lý..." : "Thanh toán")
-                            </button>
-                        </EditForm>
-                    </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(walletErrorMessage))
+            {
+                <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
+                    <i class="bi bi-exclamation-triangle"></i> @walletErrorMessage
                 </div>
-            </div>
+            }
+
+            <button class="btn btn-soft-primary action-btn mt-4" type="button" @onclick="() => LoadWalletAsync()" disabled="@isWalletLoading">
+                <i class="bi bi-arrow-repeat"></i> Tải lại số dư
+            </button>
         </div>
     </div>
 
-    <div class="modern-card modern-table-wrapper">
-        <div class="p-4 pb-2">
-            <h2 class="h5 fw-bold mb-0">Lịch sử thanh toán</h2>
+    <div class="col-xl-4">
+        <div class="modern-card form-section p-4 h-100 slide-up">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="stat-card-icon">
+                    <i class="bi bi-qr-code"></i>
+                </span>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Nạp ví bằng QR</h2>
+                    <div class="text-muted small">Tạo mã chuyển khoản demo để nạp ví.</div>
+                </div>
+            </div>
+
+            <EditForm Model="@depositForm" OnValidSubmit="GenerateWalletBankingQrAsync">
+                <DataAnnotationsValidator />
+
+                <label class="form-label">Số tiền nạp</label>
+                <InputNumber class="form-control" @bind-Value="depositForm.Amount" />
+                <ValidationMessage For="@(() => depositForm.Amount)" />
+
+                <button class="btn btn-gradient-success w-100 mt-3" type="submit" disabled="@isCreatingWalletQr">
+                    <i class="bi bi-qr-code-scan"></i>
+                    @(isCreatingWalletQr ? "Đang xử lý..." : "Tạo mã QR chuyển khoản")
+                </button>
+            </EditForm>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle modern-table mb-0">
-                <thead>
-                    <tr>
-                        <th>Mã thanh toán</th>
-                        <th>Mã đơn hàng</th>
-                        <th>Số tiền</th>
-                        <th>Phương thức</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày tạo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (payments.Count == 0)
-                    {
-                        <tr>
-                            <td colspan="6"><div class="empty-state">Chưa có dữ liệu.</div></td>
-                        </tr>
-                    }
-                    else
-                    {
-                        @foreach (var payment in payments)
-                        {
-                            <tr>
-                                <td>#@payment.Id</td>
-                                <td>#@payment.OrderId</td>
-                                <td class="fw-bold">@FormatCurrency(payment.Amount)</td>
-                                <td>@GetMethodText(payment.Method)</td>
-                                <td>
-                                    <span class="badge @GetStatusBadgeClass(payment.Status)">
-                                        @GetStatusText(payment.Status)
-                                    </span>
-                                </td>
-                                <td>@payment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="modern-card form-section p-4 h-100 slide-up">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="stat-card-icon">
+                    <i class="bi bi-credit-card"></i>
+                </span>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Thanh toán đơn hàng</h2>
+                    <div class="text-muted small">Thanh toán đơn bằng COD, ví hoặc chuyển khoản demo.</div>
+                </div>
+            </div>
+
+            <EditForm Model="@payForm" OnValidSubmit="HandlePaymentSubmitAsync">
+                <DataAnnotationsValidator />
+
+                <label class="form-label">Mã đơn hàng</label>
+                <InputNumber class="form-control" @bind-Value="payForm.OrderId" />
+                <ValidationMessage For="@(() => payForm.OrderId)" />
+
+                <label class="form-label mt-3">Phương thức thanh toán</label>
+                <select class="form-select" @bind="payForm.Method" @bind:after="OnPaymentMethodChanged">
+                    <option value="COD">Thanh toán khi nhận hàng</option>
+                    <option value="Wallet">Ví điện tử</option>
+                    <option value="BankingDemo">Chuyển khoản giả lập</option>
+                </select>
+
+                <button class="btn btn-gradient-primary w-100 mt-3" type="submit" disabled="@(isPaying || isCreatingOrderQr)">
+                    <i class="bi @(payForm.Method == "BankingDemo" ? "bi-qr-code-scan" : "bi-credit-card")"></i>
+                    @GetPaymentButtonText()
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@if (walletBankingQr is not null)
+{
+    <div class="modern-card payment-qr-section payment-wallet-qr-section fade-in">
+        <div class="payment-qr-header">
+            <div class="d-flex align-items-center gap-3">
+                <span class="stat-icon">
+                    <i class="bi bi-wallet2"></i>
+                </span>
+                <div>
+                    <h2 class="h4 fw-bold mb-1">Quét mã QR để nạp ví</h2>
+                    <div class="text-muted">Kiểm tra đúng thông tin trước khi xác nhận nạp ví demo.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-5">
+                <div class="qr-panel">
+                    <img src="@walletBankingQr.QrImageUrl" alt="Mã QR nạp ví" class="payment-qr-image" />
+                    <div class="payment-amount currency-value">@FormatCurrency(walletBankingQr.Amount)</div>
+                    <div class="text-muted small">Số tiền nạp ví demo</div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                @RenderQrInfo(walletBankingQr)
+
+                <div class="payment-demo-note mt-3">
+                    <i class="bi bi-info-circle"></i>
+                    Sau khi chuyển khoản, bấm xác nhận nạp ví để mô phỏng giao dịch thành công trong môi trường demo.
+                </div>
+
+                <button class="btn btn-gradient-success action-btn mt-3" type="button" @onclick="ConfirmDepositWalletAsync" disabled="@isDepositing">
+                    <i class="bi bi-check-circle"></i>
+                    @(isDepositing ? "Đang xử lý..." : "Xác nhận nạp ví demo")
+                </button>
+            </div>
         </div>
     </div>
 }
 
+@if (orderBankingQr is not null)
+{
+    <div class="modern-card payment-qr-section payment-order-qr-section fade-in">
+        <div class="payment-qr-header">
+            <div class="d-flex align-items-center gap-3">
+                <span class="stat-icon">
+                    <i class="bi bi-receipt"></i>
+                </span>
+                <div>
+                    <h2 class="h4 fw-bold mb-1">Quét mã QR để thanh toán đơn hàng</h2>
+                    <div class="text-muted">Đây là mã QR mô phỏng thanh toán chuyển khoản cho đơn #@payForm.OrderId.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-5">
+                <div class="qr-panel">
+                    <img src="@orderBankingQr.QrImageUrl" alt="Mã QR thanh toán đơn hàng" class="payment-qr-image" />
+                    <div class="payment-amount currency-value">@FormatCurrency(orderBankingQr.Amount)</div>
+                    <div class="text-muted small">Số tiền thanh toán đơn hàng</div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                @RenderQrInfo(orderBankingQr)
+
+                <div class="payment-demo-note mt-3">
+                    <i class="bi bi-info-circle"></i>
+                    Đây là chức năng mô phỏng thanh toán chuyển khoản. Hệ thống chưa tự động xác minh giao dịch ngân hàng thật.
+                </div>
+
+                <button class="btn btn-gradient-success action-btn mt-3" type="button" @onclick="ConfirmOrderBankingDemoPaymentAsync" disabled="@isPaying">
+                    <i class="bi bi-check-circle"></i>
+                    @(isPaying ? "Đang xử lý..." : "Xác nhận thanh toán demo")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="modern-card modern-table-wrapper payment-history-card fade-in">
+    <div class="admin-card-header">
+        <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+        <div>
+            <h2>Lịch sử thanh toán</h2>
+            <p>Các giao dịch ví, COD và chuyển khoản giả lập.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle modern-table mb-0">
+            <thead>
+                <tr>
+                    <th>Mã thanh toán</th>
+                    <th>Mã đơn hàng</th>
+                    <th>Số tiền</th>
+                    <th>Phương thức</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (payments.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                Chưa có dữ liệu.
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var payment in payments)
+                    {
+                        <tr>
+                            <td>#@payment.Id</td>
+                            <td>#@payment.OrderId</td>
+                            <td class="fw-bold currency-value">@FormatCurrency(payment.Amount)</td>
+                            <td>@GetMethodText(payment.Method)</td>
+                            <td>
+                                <span class="badge status-badge @GetStatusBadgeClass(payment.Status)">
+                                    @GetStatusText(payment.Status)
+                                </span>
+                            </td>
+                            <td>@payment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
 @code {
     private WalletDto? wallet;
+    private BankingQrDto? walletBankingQr;
+    private BankingQrDto? orderBankingQr;
     private List<PaymentDto> payments = [];
     private DepositWalletDto depositForm = new();
     private PayOrderDto payForm = new();
+    private decimal walletBalance = 0;
     private bool isLoading = true;
-    private bool isSubmitting;
+    private bool isWalletLoading;
+    private bool isCreatingWalletQr;
+    private bool isCreatingOrderQr;
+    private bool isDepositing;
+    private bool isPaying;
     private string? successMessage;
     private string? errorMessage;
+    private string? walletErrorMessage;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -182,17 +318,67 @@ else
 
         try
         {
-            var walletResponse = await PaymentApi.GetMyWalletAsync();
-            var paymentsResponse = await PaymentApi.GetMyPaymentsAsync();
+            await LoadWalletAsync(false);
+            await LoadPaymentsAsync(false);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
 
-            if (walletResponse?.Success == true)
+    private async Task LoadWalletAsync()
+    {
+        ClearMessages();
+        await LoadWalletAsync(false);
+    }
+
+    private async Task LoadWalletAsync(bool clearMessages)
+    {
+        isWalletLoading = true;
+        walletErrorMessage = null;
+
+        if (clearMessages)
+        {
+            ClearMessages();
+        }
+
+        try
+        {
+            var walletResponse = await PaymentApi.GetMyWalletAsync();
+
+            if (walletResponse?.Success == true && walletResponse.Data is not null)
             {
                 wallet = walletResponse.Data;
+                walletBalance = walletResponse.Data.Balance;
             }
             else
             {
-                errorMessage = walletResponse?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+                walletBalance = wallet?.Balance ?? 0;
+                walletErrorMessage = "Không thể tải số dư ví.";
             }
+        }
+        catch
+        {
+            walletBalance = wallet?.Balance ?? 0;
+            walletErrorMessage = "Không thể tải số dư ví.";
+        }
+        finally
+        {
+            isWalletLoading = false;
+        }
+    }
+
+    private async Task LoadPaymentsAsync(bool clearMessages = true)
+    {
+        if (clearMessages)
+        {
+            ClearMessages();
+        }
+
+        try
+        {
+            var paymentsResponse = await PaymentApi.GetMyPaymentsAsync();
 
             if (paymentsResponse?.Success == true)
             {
@@ -207,32 +393,35 @@ else
         {
             errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
         }
-        finally
-        {
-            isLoading = false;
-        }
     }
 
     private Task ReloadAsync()
     {
+        walletBankingQr = null;
+        orderBankingQr = null;
         return LoadPaymentDataAsync();
     }
 
-    private async Task DepositWalletAsync()
+    private async Task GenerateWalletBankingQrAsync()
     {
         ClearMessages();
-        isSubmitting = true;
+
+        if (depositForm.Amount <= 0)
+        {
+            errorMessage = "Vui lòng nhập số tiền hợp lệ.";
+            return;
+        }
+
+        isCreatingWalletQr = true;
 
         try
         {
-            var response = await PaymentApi.DepositWalletAsync(depositForm);
+            var response = await PaymentApi.GetBankingQrAsync(depositForm.Amount);
 
-            if (response?.Success == true)
+            if (response?.Success == true && response.Data is not null)
             {
-                wallet = response.Data;
-                depositForm = new DepositWalletDto();
-                successMessage = "Nạp ví thành công.";
-                await LoadPaymentDataAsync(false);
+                walletBankingQr = response.Data;
+                successMessage = response.Message;
             }
             else
             {
@@ -245,14 +434,150 @@ else
         }
         finally
         {
-            isSubmitting = false;
+            isCreatingWalletQr = false;
         }
     }
 
-    private async Task PayOrderAsync()
+    private async Task HandlePaymentSubmitAsync()
+    {
+        if (payForm.Method == "BankingDemo")
+        {
+            await GenerateOrderBankingQrAsync();
+            return;
+        }
+
+        await PayOrderAsync();
+    }
+
+    private void OnPaymentMethodChanged()
+    {
+        if (payForm.Method != "BankingDemo")
+        {
+            orderBankingQr = null;
+        }
+    }
+
+    private async Task GenerateOrderBankingQrAsync()
     {
         ClearMessages();
-        isSubmitting = true;
+
+        if (payForm.OrderId <= 0)
+        {
+            errorMessage = "Vui lòng nhập mã đơn hàng hợp lệ.";
+            return;
+        }
+
+        isCreatingOrderQr = true;
+
+        try
+        {
+            var response = await PaymentApi.GetOrderBankingQrAsync(payForm.OrderId);
+
+            if (response?.Success == true && response.Data is not null)
+            {
+                orderBankingQr = response.Data;
+                successMessage = response.Message;
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isCreatingOrderQr = false;
+        }
+    }
+
+    private async Task ConfirmDepositWalletAsync()
+    {
+        ClearMessages();
+
+        if (walletBankingQr is null || walletBankingQr.Amount <= 0)
+        {
+            errorMessage = "Vui lòng tạo mã QR trước khi xác nhận nạp ví.";
+            return;
+        }
+
+        isDepositing = true;
+
+        try
+        {
+            var response = await PaymentApi.DepositWalletAsync(new DepositWalletDto
+            {
+                Amount = walletBankingQr.Amount
+            });
+
+            if (response?.Success == true)
+            {
+                if (response.Data is not null)
+                {
+                    wallet = response.Data;
+                    walletBalance = response.Data.Balance;
+                }
+
+                walletBankingQr = null;
+                depositForm = new DepositWalletDto();
+                successMessage = "Nạp ví thành công.";
+                await LoadWalletAsync(false);
+                await LoadPaymentsAsync(false);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+        finally
+        {
+            isDepositing = false;
+        }
+    }
+
+    private async Task ConfirmOrderBankingDemoPaymentAsync()
+    {
+        ClearMessages();
+
+        if (orderBankingQr is null || payForm.OrderId <= 0)
+        {
+            errorMessage = "Vui lòng tạo mã QR thanh toán đơn trước.";
+            return;
+        }
+
+        var confirmed = await JsRuntime.InvokeAsync<bool>(
+            "confirm",
+            "Đây là thao tác mô phỏng thanh toán chuyển khoản. Bạn muốn xác nhận thanh toán đơn hàng này?");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        payForm.Method = "BankingDemo";
+        await PayOrderAsync("Thanh toán đơn hàng thành công.");
+
+        if (string.IsNullOrWhiteSpace(errorMessage))
+        {
+            orderBankingQr = null;
+        }
+    }
+
+    private Task PayOrderAsync()
+    {
+        return PayOrderAsync(null);
+    }
+
+    private async Task PayOrderAsync(string? successOverride)
+    {
+        ClearMessages();
+        isPaying = true;
 
         try
         {
@@ -260,10 +585,12 @@ else
 
             if (response?.Success == true)
             {
-                successMessage = payForm.Method == "COD"
-                    ? "Đã ghi nhận thanh toán khi nhận hàng."
-                    : "Thanh toán thành công.";
-                await LoadPaymentDataAsync(false);
+                successMessage = successOverride
+                    ?? (payForm.Method == "COD"
+                        ? "Đã ghi nhận thanh toán khi nhận hàng."
+                        : "Thanh toán thành công.");
+                await LoadWalletAsync(false);
+                await LoadPaymentsAsync(false);
             }
             else
             {
@@ -276,9 +603,57 @@ else
         }
         finally
         {
-            isSubmitting = false;
+            isPaying = false;
         }
     }
+
+    private async Task CopyToClipboardAsync(string value)
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", value);
+            successMessage = "Đã sao chép.";
+        }
+        catch
+        {
+            errorMessage = "Không thể sao chép. Vui lòng thử lại.";
+        }
+    }
+
+    private RenderFragment RenderQrInfo(BankingQrDto qr) => @<div>
+        <div class="payment-info-grid">
+            <div class="payment-info-card">
+                <span>Ngân hàng</span>
+                <strong>@qr.BankCode</strong>
+            </div>
+            <div class="payment-info-card">
+                <span>Chủ tài khoản</span>
+                <strong>@qr.AccountName</strong>
+            </div>
+            <div class="payment-info-card">
+                <span>Số tài khoản</span>
+                <strong>@qr.AccountNumber</strong>
+            </div>
+            <div class="payment-info-card">
+                <span>Số tiền</span>
+                <strong class="text-success currency-value">@FormatCurrency(qr.Amount)</strong>
+            </div>
+        </div>
+
+        <div class="payment-info-card mt-3">
+            <span>Nội dung chuyển khoản</span>
+            <code class="transfer-code">@qr.AddInfo</code>
+        </div>
+
+        <div class="qr-action-row mt-3">
+            <button class="btn btn-soft-primary action-btn" type="button" @onclick="() => CopyToClipboardAsync(qr.AccountNumber)">
+                <i class="bi bi-clipboard"></i> Sao chép số tài khoản
+            </button>
+            <button class="btn btn-soft-primary action-btn" type="button" @onclick="() => CopyToClipboardAsync(qr.AddInfo)">
+                <i class="bi bi-clipboard"></i> Sao chép nội dung chuyển khoản
+            </button>
+        </div>
+    </div>;
 
     private void PrefillOrderIdFromQuery()
     {
@@ -305,6 +680,16 @@ else
     {
         successMessage = null;
         errorMessage = null;
+    }
+
+    private string GetPaymentButtonText()
+    {
+        if (payForm.Method == "BankingDemo")
+        {
+            return isCreatingOrderQr ? "Đang xử lý..." : "Tạo QR thanh toán đơn";
+        }
+
+        return isPaying ? "Đang xử lý..." : "Thanh toán";
     }
 
     private static string FormatCurrency(decimal value)
@@ -342,7 +727,7 @@ else
             "Pending" => "text-bg-warning",
             "Paid" => "text-bg-success",
             "Failed" => "text-bg-danger",
-            "Refunded" => "text-bg-info",
+            "Refunded" => "text-bg-secondary",
             _ => "text-bg-secondary"
         };
     }

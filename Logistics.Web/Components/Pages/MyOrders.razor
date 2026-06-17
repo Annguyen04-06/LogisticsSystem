@@ -6,7 +6,7 @@
 
 <PageTitle>Đơn hàng của tôi</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Đơn hàng của tôi</h1>
         <p class="page-subtitle">Theo dõi trạng thái xử lý và giao hàng.</p>
@@ -15,21 +15,21 @@
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success">@successMessage</div>
+    <div class="alert alert-success alert-modern fade-in">@successMessage</div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
 @if (isLoading)
 {
-    <div class="loading-state">Đang tải dữ liệu...</div>
+    <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
 }
 else if (orders.Count == 0)
 {
-    <div class="empty-state">Chưa có dữ liệu.</div>
+    <div class="empty-state"><i class="bi bi-inbox"></i> Chưa có dữ liệu.</div>
 }
 else
 {
@@ -37,7 +37,7 @@ else
         @foreach (var order in orders)
         {
             <div class="modern-card customer-order-card hover-lift p-4">
-                <div class="d-flex flex-wrap justify-content-between gap-3 mb-3">
+                <div class="d-flex flex-wrap justify-content-between gap-3 mb-3 order-card-header">
                     <div class="d-flex gap-3">
                         <div class="product-card-icon">
                             <i class="bi bi-receipt"></i>
@@ -49,10 +49,10 @@ else
                         </div>
                     </div>
                     <div class="text-end">
-                        <span class="status-badge @GetStatusBadgeClass(order.Status)">@GetVietnameseStatus(order.Status)</span>
+                            <span class="status-badge @GetStatusBadgeClass(order.Status)">@GetVietnameseStatus(order.Status)</span>
                         @if (order.Status == "Pending")
                         {
-                            <div class="mt-2 d-flex justify-content-end gap-2">
+                            <div class="mt-2 d-flex justify-content-end gap-2 flex-wrap">
                                 <button class="btn btn-sm btn-soft-warning action-btn" @onclick="() => CancelOrderAsync(order.Id)">
                                     <i class="bi bi-x-circle"></i> Hủy
                                 </button>
@@ -68,19 +68,19 @@ else
                     <div class="col-md-4">
                         <div class="stat-card">
                             <div class="stat-card-title">Tổng tiền</div>
-                            <div class="stat-card-value">@FormatMoney(order.TotalAmount)</div>
+                            <div class="stat-card-value currency-value">@FormatMoney(order.TotalAmount)</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="stat-card">
                             <div class="stat-card-title">Giảm giá</div>
-                            <div class="stat-card-value">@FormatMoney(order.DiscountAmount)</div>
+                            <div class="stat-card-value currency-value">@FormatMoney(order.DiscountAmount)</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="stat-card">
                             <div class="stat-card-title">Thành tiền</div>
-                            <div class="stat-card-value">@FormatMoney(order.FinalAmount)</div>
+                            <div class="stat-card-value currency-value">@FormatMoney(order.FinalAmount)</div>
                         </div>
                     </div>
                 </div>
@@ -102,8 +102,8 @@ else
                                     <tr>
                                         <td class="fw-semibold">@detail.ProductName</td>
                                         <td>@detail.Quantity</td>
-                                        <td>@FormatMoney(detail.UnitPrice)</td>
-                                        <td class="fw-bold">@FormatMoney(detail.TotalPrice)</td>
+                                        <td class="currency-value">@FormatMoney(detail.UnitPrice)</td>
+                                        <td class="fw-bold currency-value">@FormatMoney(detail.TotalPrice)</td>
                                     </tr>
                                 }
                             </tbody>

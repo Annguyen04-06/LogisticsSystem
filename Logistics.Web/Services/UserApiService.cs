@@ -15,6 +15,11 @@ public class UserApiService(ApiClientService apiClient)
         return await apiClient.GetAsync<ApiResponse<UserDto>>($"api/users/{id}");
     }
 
+    public async Task<ApiResponse<List<AvailableShipperDto>>?> GetActiveShippersAsync()
+    {
+        return await apiClient.GetAsync<ApiResponse<List<AvailableShipperDto>>>("api/users/shippers");
+    }
+
     public async Task<ApiResponse<UserDto>?> ApproveSellerAsync(int id)
     {
         var response = await apiClient.PutAsync($"api/users/{id}/approve-seller", new { });

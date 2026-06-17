@@ -2,7 +2,7 @@ using Logistics.Web.Models;
 
 namespace Logistics.Web.Services;
 
-public class AuthStateService
+public class AuthStateService(TokenStorageService tokenStorage)
 {
     public event Action? OnChange;
 
@@ -16,6 +16,21 @@ public class AuthStateService
     {
         CurrentUser = user;
         NotifyStateChanged();
+    }
+
+    public async Task LoadCurrentUserAsync()
+    {
+        var currentUser = await tokenStorage.GetCurrentUserAsync();
+
+        if (currentUser is not null)
+        {
+            SetCurrentUser(currentUser);
+        }
+    }
+
+    public async Task RefreshCurrentUserAsync()
+    {
+        await LoadCurrentUserAsync();
     }
 
     public void UpdateProfile(string fullName, string? avatarUrl)
@@ -48,7 +63,7 @@ public class AuthStateService
         };
     }
 
-    private void NotifyStateChanged()
+    public void NotifyStateChanged()
     {
         OnChange?.Invoke();
     }

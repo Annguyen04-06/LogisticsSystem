@@ -44,7 +44,7 @@ public class TokenStorageService(IJSRuntime jsRuntime)
             Email = email ?? string.Empty,
             Role = role ?? string.Empty,
             Token = token,
-            AvatarUrl = string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl
+            AvatarUrl = NormalizeImageUrl(avatarUrl)
         };
     }
 
@@ -56,5 +56,20 @@ public class TokenStorageService(IJSRuntime jsRuntime)
         await jsRuntime.InvokeVoidAsync("localStorage.removeItem", EmailKey);
         await jsRuntime.InvokeVoidAsync("localStorage.removeItem", RoleKey);
         await jsRuntime.InvokeVoidAsync("localStorage.removeItem", AvatarUrlKey);
+    }
+
+    private static string? NormalizeImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            return null;
+        }
+
+        if (Uri.TryCreate(imageUrl, UriKind.Absolute, out _))
+        {
+            return imageUrl;
+        }
+
+        return $"http://localhost:5203/{imageUrl.TrimStart('/')}";
     }
 }

@@ -28,23 +28,39 @@ public class CreateTicketCommandHandler(IApplicationDbContext context)
             return ApiResponse<SupportTicketDto>.Fail("Content is required.");
         }
 
-        if (request.Ticket.SellerId.HasValue)
+        int? sellerId = request.Ticket.SellerId;
+
+        if (request.Ticket.OrderId.HasValue)
         {
-            var sellerExists = await context.Users
-                .AnyAsync(
-                    user => user.Id == request.Ticket.SellerId.Value && user.Role == UserRole.Seller,
+            var order = await context.Orders
+                .FirstOrDefaultAsync(
+                    order => order.Id == request.Ticket.OrderId.Value,
                     cancellationToken);
 
-            if (!sellerExists)
+            if (order is null || order.CustomerId != request.CurrentUserId)
             {
-                return ApiResponse<SupportTicketDto>.Fail("Seller does not exist.");
+                return ApiResponse<SupportTicketDto>.Fail("Bạn không có quyền gửi hỗ trợ cho đơn hàng này.");
+            }
+
+            sellerId = order.SellerId;
+        }
+
+        if (sellerId.HasValue)
+        {
+            var seller = await context.Users
+                .FirstOrDefaultAsync(user => user.Id == sellerId.Value, cancellationToken);
+
+            if (seller is null || seller.Role != UserRole.Seller)
+            {
+                return ApiResponse<SupportTicketDto>.Fail("Tài khoản được chọn không phải là người bán.");
             }
         }
 
         var ticket = new SupportTicket
         {
             CustomerId = request.CurrentUserId,
-            SellerId = request.Ticket.SellerId,
+            SellerId = sellerId,
+            OrderId = request.Ticket.OrderId,
             Title = request.Ticket.Title.Trim(),
             Content = request.Ticket.Content.Trim(),
             Status = TicketStatus.Open

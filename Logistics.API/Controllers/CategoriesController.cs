@@ -18,9 +18,9 @@ public class CategoriesController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] bool includeInactive, CancellationToken cancellationToken)
     {
-        var response = await mediator.Send(new GetAllCategoriesQuery(), cancellationToken);
+        var response = await mediator.Send(new GetAllCategoriesQuery(includeInactive), cancellationToken);
         return Ok(response);
     }
 

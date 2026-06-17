@@ -20,6 +20,9 @@ public class SupportTicketDto
     [JsonPropertyName("sellerName")]
     public string? SellerName { get; set; }
 
+    [JsonPropertyName("orderId")]
+    public int? OrderId { get; set; }
+
     [JsonPropertyName("title")]
     public string Title { get; set; } = string.Empty;
 
@@ -61,6 +64,9 @@ public class CreateTicketDto
 {
     [JsonPropertyName("sellerId")]
     public int? SellerId { get; set; }
+
+    [JsonPropertyName("orderId")]
+    public int? OrderId { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập tiêu đề.")]
     [JsonPropertyName("title")]

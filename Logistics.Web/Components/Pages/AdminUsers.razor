@@ -6,12 +6,12 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JsRuntime
 
-<PageTitle>Người dùng</PageTitle>
+<PageTitle>Quản lý người dùng</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
-        <h1 class="page-title">Người dùng</h1>
-        <p class="page-subtitle">Theo dõi vai trò và trạng thái tài khoản trong hệ thống.</p>
+        <h1 class="page-title">Quản lý người dùng</h1>
+        <p class="page-subtitle">Theo dõi vai trò, trạng thái và quyền truy cập tài khoản.</p>
     </div>
     <button class="btn btn-gradient-primary action-btn" type="button" @onclick="() => LoadUsersAsync()">
         <i class="bi bi-arrow-repeat"></i> Làm mới
@@ -20,24 +20,24 @@
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success fade-in">@successMessage</div>
+    <div class="alert alert-success alert-modern fade-in">@successMessage</div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger fade-in">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
 @if (selectedUser is not null)
 {
-    <div class="modern-card p-4 mb-4 slide-up">
+    <div class="modern-card admin-detail-card p-4 mb-4 slide-up">
         <div class="d-flex justify-content-between align-items-start gap-3">
             <div>
                 <div class="text-muted small">Chi tiết người dùng</div>
                 <h2 class="h5 fw-bold mb-1">@selectedUser.FullName</h2>
                 <div class="text-muted">@selectedUser.Email</div>
             </div>
-            <button class="btn btn-sm btn-outline-secondary action-btn" type="button" @onclick="ClearSelectedUser">
+            <button class="btn btn-sm btn-soft-secondary action-btn" type="button" @onclick="ClearSelectedUser">
                 <i class="bi bi-x-circle"></i> Đóng
             </button>
         </div>
@@ -53,23 +53,23 @@
 
 <div class="row g-3 mb-4 fade-in">
     @StatCard("Tổng người dùng", users.Count.ToString("N0"), "Tất cả tài khoản trong hệ thống", "bi-people")
-    @StatCard("Đã duyệt", users.Count(user => user.IsApproved).ToString("N0"), "Tài khoản đã được phê duyệt", "bi-person-check")
-    @StatCard("Tài khoản hoạt động", users.Count(user => user.IsActive).ToString("N0"), "Có thể đăng nhập hệ thống", "bi-shield-check")
+    @StatCard("Đang hoạt động", users.Count(user => user.IsActive).ToString("N0"), "Có thể đăng nhập hệ thống", "bi-shield-check")
     @StatCard("Người bán chờ duyệt", users.Count(user => user.Role == "Seller" && !user.IsApproved).ToString("N0"), "Cần quản trị viên phê duyệt", "bi-hourglass-split")
+    @StatCard("Đã vô hiệu hóa", users.Count(user => !user.IsActive).ToString("N0"), "Tài khoản tạm ngừng truy cập", "bi-slash-circle")
 </div>
 
-<div class="modern-card modern-table-wrapper slide-up">
-    <div class="p-4 pb-2 d-flex align-items-center gap-3">
-        <div class="stat-card-icon"><i class="bi bi-people"></i></div>
+<div class="modern-card modern-table-wrapper admin-users-table slide-up">
+    <div class="admin-card-header">
+        <div class="stat-icon"><i class="bi bi-people"></i></div>
         <div>
-            <h2 class="h5 fw-bold mb-0">Danh sách người dùng</h2>
-            <div class="text-muted small">Dữ liệu được tải trực tiếp từ cơ sở dữ liệu.</div>
+            <h2>Danh sách người dùng</h2>
+            <p>Dữ liệu được tải trực tiếp từ cơ sở dữ liệu.</p>
         </div>
     </div>
 
     @if (isLoading)
     {
-        <div class="loading-state">Đang tải dữ liệu...</div>
+        <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
     }
     else
     {
@@ -82,9 +82,8 @@
                         <th>Email</th>
                         <th>Số điện thoại</th>
                         <th>Vai trò</th>
-                        <th>Đã duyệt</th>
-                        <th>Đang hoạt động</th>
-                        <th>Ngày tạo</th>
+                        <th>Trạng thái</th>
+                        <th>Phê duyệt</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
                 </thead>
@@ -92,7 +91,7 @@
                     @if (users.Count == 0)
                     {
                         <tr>
-                            <td colspan="9"><div class="empty-state">Chưa có dữ liệu.</div></td>
+                            <td colspan="8"><div class="empty-state"><i class="bi bi-inbox"></i> Chưa có dữ liệu.</div></td>
                         </tr>
                     }
                     else
@@ -110,55 +109,56 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="status-badge @(user.IsApproved ? "status-delivered" : "status-pending")">
-                                        @(user.IsApproved ? "Đã duyệt" : "Chờ duyệt")
-                                    </span>
-                                </td>
-                                <td>
                                     <span class="status-badge @(user.IsActive ? "status-delivered" : "status-cancelled")">
                                         @(user.IsActive ? "Đang hoạt động" : "Đã vô hiệu hóa")
                                     </span>
                                 </td>
-                                <td>@user.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <span class="status-badge @(user.IsApproved ? "status-delivered" : "status-pending")">
+                                        @(user.IsApproved ? "Đã duyệt" : "Chờ duyệt")
+                                    </span>
+                                </td>
                                 <td class="text-end">
-                                    @if (user.Role == "Seller" && !user.IsApproved)
-                                    {
-                                        <button class="btn btn-sm btn-soft-success action-btn me-1"
+                                    <div class="admin-row-actions">
+                                        @if (user.Role == "Seller" && !user.IsApproved)
+                                        {
+                                            <button class="btn btn-sm btn-soft-success action-btn"
+                                                    type="button"
+                                                    disabled="@IsBusy(user.Id)"
+                                                    @onclick="() => ApproveSellerAsync(user.Id)">
+                                                <i class="bi bi-check-circle"></i> Duyệt người bán
+                                            </button>
+                                        }
+
+                                        <button class="btn btn-sm btn-soft-primary action-btn"
                                                 type="button"
                                                 disabled="@IsBusy(user.Id)"
-                                                @onclick="() => ApproveSellerAsync(user.Id)">
-                                            <i class="bi bi-check-circle"></i> Duyệt người bán
-                                        </button>
-                                    }
-
-                                    <button class="btn btn-sm btn-soft-primary action-btn me-1"
-                                            type="button"
-                                            disabled="@IsBusy(user.Id)"
-                                            @onclick="() => ViewDetailsAsync(user.Id)">
-                                        <i class="bi bi-eye"></i> Xem chi tiết
-                                    </button>
-
-                                    @if (IsCurrentUser(user.Id))
-                                    {
-                                        <span class="text-muted small">Tài khoản hiện tại</span>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-sm @(user.IsActive ? "btn-soft-warning" : "btn-soft-success") action-btn me-1"
-                                                type="button"
-                                                disabled="@IsBusy(user.Id)"
-                                                @onclick="() => ToggleActiveAsync(user)">
-                                            <i class="bi @(user.IsActive ? "bi-slash-circle" : "bi-check-circle")"></i>
-                                            @(user.IsActive ? "Vô hiệu hóa" : "Kích hoạt")
+                                                @onclick="() => ViewDetailsAsync(user.Id)">
+                                            <i class="bi bi-eye"></i> Xem chi tiết
                                         </button>
 
-                                        <button class="btn btn-sm btn-soft-danger action-btn"
-                                                type="button"
-                                                disabled="@IsBusy(user.Id)"
-                                                @onclick="() => DeleteUserAsync(user.Id)">
-                                            <i class="bi bi-trash"></i> Xóa vĩnh viễn
-                                        </button>
-                                    }
+                                        @if (IsCurrentUser(user.Id))
+                                        {
+                                            <span class="status-badge badge-soft-primary">Tài khoản hiện tại</span>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm @(user.IsActive ? "btn-soft-warning" : "btn-soft-success") action-btn"
+                                                    type="button"
+                                                    disabled="@IsBusy(user.Id)"
+                                                    @onclick="() => ToggleActiveAsync(user)">
+                                                <i class="bi @(user.IsActive ? "bi-slash-circle" : "bi-check-circle")"></i>
+                                                @(user.IsActive ? "Vô hiệu hóa" : "Kích hoạt")
+                                            </button>
+
+                                            <button class="btn btn-sm btn-soft-danger action-btn"
+                                                    type="button"
+                                                    disabled="@IsBusy(user.Id)"
+                                                    @onclick="() => DeleteUserAsync(user.Id)">
+                                                <i class="bi bi-trash"></i> Xóa vĩnh viễn
+                                            </button>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -422,7 +422,7 @@
 
     private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-sm-6 col-xl-3">
         <div class="stat-card hover-lift h-100">
-            <div class="stat-card-icon"><i class="bi @icon"></i></div>
+            <div class="stat-icon"><i class="bi @icon"></i></div>
             <div class="stat-card-title">@label</div>
             <div class="stat-card-value">@value</div>
             <div class="stat-card-description">@note</div>

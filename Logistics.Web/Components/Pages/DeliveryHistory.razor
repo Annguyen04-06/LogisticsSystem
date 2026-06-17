@@ -7,7 +7,7 @@
 
 <PageTitle>Lịch sử giao hàng</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Lịch sử giao hàng</h1>
         <p class="page-subtitle">Danh sách các đơn hàng đã giao thành công.</p>
@@ -19,23 +19,21 @@
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
 @if (isLoading)
 {
-    <div class="loading-state">Đang tải dữ liệu...</div>
+    <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
 }
 else
 {
-    <div class="modern-card modern-table-wrapper slide-up">
-        <div class="p-4 pb-2 d-flex align-items-center gap-3">
-            <div class="shipper-card-icon">
-                <i class="bi bi-truck"></i>
-            </div>
+    <div class="modern-card modern-table-wrapper delivery-history-card slide-up">
+        <div class="admin-card-header">
+            <div class="stat-icon"><i class="bi bi-truck"></i></div>
             <div>
-                <h2 class="h5 fw-bold mb-0">Đơn đã giao</h2>
-                <div class="text-muted small">Theo dõi các lần giao hàng đã hoàn tất.</div>
+                <h2>Đơn đã giao</h2>
+                <p>Theo dõi các lần giao hàng đã hoàn tất.</p>
             </div>
         </div>
 
@@ -54,7 +52,7 @@ else
                     @if (deliveries.Count == 0)
                     {
                         <tr>
-                            <td colspan="5"><div class="empty-state">Chưa có lịch sử giao hàng.</div></td>
+                            <td colspan="5"><div class="empty-state"><i class="bi bi-inbox"></i> Chưa có lịch sử giao hàng.</div></td>
                         </tr>
                     }
                     else

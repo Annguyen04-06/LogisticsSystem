@@ -59,6 +59,36 @@ public class CloudinaryService : ICloudinaryService
         return UploadImageAsync(file, ProductImageMaxSize, publicId, cancellationToken);
     }
 
+    public async Task<string> UploadDemoProductImageAsync(
+        string imageUrl,
+        int productId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            throw new ArgumentException("Vui lòng chọn file ảnh.");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var uploadParams = new ImageUploadParams
+        {
+            File = new FileDescription(imageUrl),
+            Folder = "logistics/demo-products",
+            PublicId = $"demo-product-{productId}",
+            Overwrite = true
+        };
+
+        var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+        if (uploadResult.Error is not null)
+        {
+            throw new InvalidOperationException(uploadResult.Error.Message);
+        }
+
+        return uploadResult.SecureUrl?.ToString() ?? string.Empty;
+    }
+
     private async Task<string> UploadImageAsync(
         IFormFile file,
         long maxSize,

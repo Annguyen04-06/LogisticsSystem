@@ -25,42 +25,47 @@
         else if (AuthState.CurrentRole == "Customer")
         {
             <div class="nav-section">Khách hàng</div>
-            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @NavItem("products", "bi-box-seam", "Sản phẩm")
             @NavItem("cart", "bi-cart3", "Giỏ hàng")
             @NavItem("my-orders", "bi-receipt", "Đơn hàng của tôi")
             @NavItem("payments", "bi-wallet2", "Thanh toán")
             @NavItem("my-tickets", "bi-headset", "Hỗ trợ khách hàng")
+            <div class="nav-section">Tài khoản</div>
+            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @LogoutButton()
         }
         else if (AuthState.CurrentRole == "Seller")
         {
             <div class="nav-section">Người bán</div>
-            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @NavItem("seller-dashboard", "bi-speedometer2", "Bảng điều khiển người bán")
             @NavItem("seller-products", "bi-box-seam", "Quản lý sản phẩm")
             @NavItem("seller-orders", "bi-receipt", "Đơn hàng người bán")
             @NavItem("tickets", "bi-headset", "Hỗ trợ khách hàng")
             @NavItem("admin-reports", "bi-file-earmark-bar-graph", "Báo cáo")
+            <div class="nav-section">Tài khoản</div>
+            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @LogoutButton()
         }
         else if (AuthState.CurrentRole == "Shipper")
         {
             <div class="nav-section">Người giao hàng</div>
-            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @NavItem("shipper-orders", "bi-truck", "Đơn cần giao")
             @NavItem("delivery-history", "bi-receipt", "Lịch sử giao hàng")
+            <div class="nav-section">Tài khoản</div>
+            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @LogoutButton()
         }
         else if (AuthState.CurrentRole == "Admin")
         {
             <div class="nav-section">Quản trị viên</div>
-            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @NavItem("admin-dashboard", "bi-speedometer2", "Bảng điều khiển quản trị")
             @NavItem("admin-users", "bi-people", "Người dùng")
+            @NavItem("admin-categories", "bi-tags", "Danh mục")
             @NavItem("admin-coupons", "bi-ticket-perforated", "Mã giảm giá")
             @NavItem("tickets", "bi-headset", "Hỗ trợ khách hàng")
             @NavItem("admin-reports", "bi-file-earmark-bar-graph", "Báo cáo")
+            <div class="nav-section">Tài khoản</div>
+            @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @LogoutButton()
         }
     </nav>

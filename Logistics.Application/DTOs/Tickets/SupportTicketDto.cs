@@ -9,6 +9,7 @@ public class SupportTicketDto
     public string CustomerName { get; set; } = string.Empty;
     public int? SellerId { get; set; }
     public string? SellerName { get; set; }
+    public int? OrderId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public TicketStatus Status { get; set; }

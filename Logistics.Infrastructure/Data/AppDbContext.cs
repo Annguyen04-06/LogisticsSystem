@@ -218,6 +218,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(ticket => ticket.SellerId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<SupportTicket>()
+            .HasOne<Order>()
+            .WithMany()
+            .HasForeignKey(ticket => ticket.OrderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<TicketReply>()
             .HasOne<SupportTicket>()
             .WithMany()

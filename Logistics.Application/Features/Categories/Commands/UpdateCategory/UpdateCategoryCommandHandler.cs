@@ -14,12 +14,12 @@ public class UpdateCategoryCommandHandler(IApplicationDbContext context)
     {
         if (request.CurrentUserRole != UserRole.Admin)
         {
-            return ApiResponse<CategoryDto>.Fail("Only admin can update categories.");
+            return ApiResponse<CategoryDto>.Fail("Chỉ quản trị viên mới có quyền cập nhật danh mục.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Category.Name))
         {
-            return ApiResponse<CategoryDto>.Fail("Category name is required.");
+            return ApiResponse<CategoryDto>.Fail("Vui lòng nhập tên danh mục.");
         }
 
         var category = await context.Categories
@@ -27,7 +27,7 @@ public class UpdateCategoryCommandHandler(IApplicationDbContext context)
 
         if (category is null)
         {
-            return ApiResponse<CategoryDto>.Fail("Category does not exist.");
+            return ApiResponse<CategoryDto>.Fail("Không tìm thấy danh mục.");
         }
 
         category.Name = request.Category.Name.Trim();
@@ -43,6 +43,6 @@ public class UpdateCategoryCommandHandler(IApplicationDbContext context)
             Name = category.Name,
             Description = category.Description,
             IsActive = category.IsActive
-        }, "Category updated successfully.");
+        }, "Cập nhật danh mục thành công.");
     }
 }

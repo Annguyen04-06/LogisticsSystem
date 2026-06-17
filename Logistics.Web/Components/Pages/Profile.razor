@@ -7,7 +7,7 @@
 
 <PageTitle>Hồ sơ cá nhân</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Hồ sơ cá nhân</h1>
         <p class="page-subtitle">Quản lý thông tin tài khoản, ảnh đại diện và mật khẩu.</p>
@@ -16,27 +16,27 @@
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success fade-in">@successMessage</div>
+    <div class="alert alert-success alert-modern fade-in">@successMessage</div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger fade-in">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
 @if (isLoading)
 {
-    <div class="loading-state">Đang tải dữ liệu...</div>
+    <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
 }
 else if (profile is null)
 {
-    <div class="empty-state">Chưa có dữ liệu.</div>
+    <div class="empty-state"><i class="bi bi-inbox"></i> Chưa có dữ liệu.</div>
 }
 else
 {
     <div class="row g-4 fade-in">
         <div class="col-xl-4">
-            <div class="modern-card profile-card p-4 text-center hover-lift">
+            <div class="modern-card profile-card profile-avatar-card p-4 text-center hover-lift">
                 <div class="profile-avatar mx-auto mb-3">
                     @if (!string.IsNullOrWhiteSpace(profile.AvatarUrl))
                     {
@@ -51,23 +51,40 @@ else
                 <h2 class="h4 fw-bold mb-1">@profile.FullName</h2>
                 <div class="text-muted">@profile.Email</div>
                 <span class="role-badge mt-3">@DisplayRole(profile.Role)</span>
+                <div class="mt-3">
+                    <span class="status-badge @(profile.IsActive ? "badge-soft-success" : "badge-soft-danger")">
+                        @(profile.IsActive ? "Đang hoạt động" : "Đã vô hiệu hóa")
+                    </span>
+                </div>
 
                 <div class="mt-4 text-start">
                     <label class="form-label">Ảnh đại diện</label>
                     <InputFile class="form-control" OnChange="OnAvatarSelected" accept=".jpg,.jpeg,.png,.webp" />
-                    <button class="btn btn-gradient-primary w-100 mt-3" type="button" disabled="@(selectedAvatar is null || isUploadingAvatar)" @onclick="UploadAvatarAsync">
+                    @if (selectedAvatar is not null)
+                    {
+                        <div class="selected-file-chip"><i class="bi bi-image"></i> @selectedAvatar.Name</div>
+                    }
+                    <button class="btn btn-gradient-primary action-btn w-100 mt-3" type="button" disabled="@(selectedAvatar is null || isUploadingAvatar)" @onclick="UploadAvatarAsync">
                         <i class="bi bi-cloud-arrow-up"></i> @(isUploadingAvatar ? "Đang xử lý..." : "Tải ảnh đại diện")
                     </button>
                 </div>
             </div>
 
-            <div class="modern-card p-4 mt-4">
-                <h3 class="h5 fw-bold mb-3">Liên kết nhanh</h3>
-                <div class="d-grid gap-2">
+            <div class="modern-card profile-quick-card p-4 mt-4 slide-up">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="stat-icon"><i class="bi bi-lightning-charge"></i></div>
+                    <div>
+                        <h3 class="h5 fw-bold mb-0">Liên kết nhanh</h3>
+                        <div class="text-muted small">Đi nhanh đến các chức năng theo vai trò.</div>
+                    </div>
+                </div>
+                <div class="profile-quick-grid">
                     @foreach (var link in GetQuickLinks(profile.Role))
                     {
-                        <a class="btn btn-soft-primary action-btn justify-content-start" href="@link.Url">
-                            <i class="bi @link.Icon"></i> @link.Label
+                        <a class="quick-action-card profile-quick-link hover-lift" href="@link.Url">
+                            <span class="stat-icon"><i class="bi @link.Icon"></i></span>
+                            <span>@link.Label</span>
+                            <i class="bi bi-arrow-right-short quick-card-arrow"></i>
                         </a>
                     }
                 </div>
@@ -75,34 +92,34 @@ else
         </div>
 
         <div class="col-xl-8">
-            <div class="modern-card p-4 mb-4">
+            <div class="modern-card profile-info-card p-4 mb-4 slide-up">
                 <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="stat-card-icon"><i class="bi bi-person-vcard"></i></div>
+                    <div class="stat-icon"><i class="bi bi-person-vcard"></i></div>
                     <div>
                         <h2 class="h5 fw-bold mb-0">Thông tin tài khoản</h2>
                         <div class="text-muted small">Thông tin định danh trong hệ thống.</div>
                     </div>
                 </div>
 
-                <div class="row g-3">
-                    <div class="col-md-6"><strong>Họ và tên:</strong> @profile.FullName</div>
-                    <div class="col-md-6"><strong>Email:</strong> @profile.Email</div>
-                    <div class="col-md-6"><strong>Vai trò:</strong> @DisplayRole(profile.Role)</div>
-                    <div class="col-md-6"><strong>Số điện thoại:</strong> @profile.PhoneNumber</div>
-                    <div class="col-12"><strong>Địa chỉ:</strong> @profile.Address</div>
-                    <div class="col-md-6">
-                        <strong>Trạng thái tài khoản:</strong>
+                <div class="profile-info-grid">
+                    <div class="profile-info-item"><span>Họ và tên</span><strong>@profile.FullName</strong></div>
+                    <div class="profile-info-item"><span>Email</span><strong>@profile.Email</strong></div>
+                    <div class="profile-info-item"><span>Vai trò</span><strong>@DisplayRole(profile.Role)</strong></div>
+                    <div class="profile-info-item"><span>Số điện thoại</span><strong>@profile.PhoneNumber</strong></div>
+                    <div class="profile-info-item profile-info-wide"><span>Địa chỉ</span><strong>@profile.Address</strong></div>
+                    <div class="profile-info-item">
+                        <span>Trạng thái tài khoản</span>
                         <span class="status-badge @(profile.IsActive ? "status-delivered" : "status-cancelled")">
                             @(profile.IsActive ? "Đang hoạt động" : "Đã vô hiệu hóa")
                         </span>
                     </div>
-                    <div class="col-md-6"><strong>Ngày tạo:</strong> @profile.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                    <div class="profile-info-item"><span>Ngày tạo</span><strong>@profile.CreatedAt.ToString("dd/MM/yyyy HH:mm")</strong></div>
                 </div>
             </div>
 
-            <div class="modern-card form-modern p-4 mb-4">
+            <div class="modern-card form-modern profile-form-card p-4 mb-4 slide-up">
                 <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="stat-card-icon"><i class="bi bi-pencil-square"></i></div>
+                    <div class="stat-icon"><i class="bi bi-pencil-square"></i></div>
                     <div>
                         <h2 class="h5 fw-bold mb-0">Cập nhật hồ sơ</h2>
                         <div class="text-muted small">Email và vai trò không thể thay đổi tại đây.</div>
@@ -129,15 +146,15 @@ else
                         </div>
                     </div>
 
-                    <button class="btn btn-gradient-success mt-4" type="submit" disabled="@isSavingProfile">
+                    <button class="btn btn-gradient-success action-btn mt-4" type="submit" disabled="@isSavingProfile">
                         <i class="bi bi-save"></i> @(isSavingProfile ? "Đang xử lý..." : "Cập nhật hồ sơ")
                     </button>
                 </EditForm>
             </div>
 
-            <div class="modern-card form-modern p-4">
+            <div class="modern-card form-modern profile-form-card p-4 slide-up">
                 <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="stat-card-icon"><i class="bi bi-shield-lock"></i></div>
+                    <div class="stat-icon"><i class="bi bi-shield-lock"></i></div>
                     <div>
                         <h2 class="h5 fw-bold mb-0">Đổi mật khẩu</h2>
                         <div class="text-muted small">Mật khẩu mới cần đủ mạnh để bảo vệ tài khoản.</div>
@@ -151,7 +168,7 @@ else
                             <label class="form-label">Mật khẩu hiện tại</label>
                             <div class="input-group">
                                 <InputText class="form-control" type="@(showCurrentPassword ? "text" : "password")" @bind-Value="passwordForm.CurrentPassword" />
-                                <button class="btn btn-outline-secondary" type="button" title="@(showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showCurrentPassword = !showCurrentPassword">
+                                <button class="btn btn-soft-secondary" type="button" title="@(showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showCurrentPassword = !showCurrentPassword">
                                     <i class="bi @(showCurrentPassword ? "bi-eye-slash" : "bi-eye")"></i>
                                 </button>
                             </div>
@@ -161,7 +178,7 @@ else
                             <label class="form-label">Mật khẩu mới</label>
                             <div class="input-group">
                                 <InputText class="form-control" type="@(showNewPassword ? "text" : "password")" @bind-Value="passwordForm.NewPassword" />
-                                <button class="btn btn-outline-secondary" type="button" title="@(showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showNewPassword = !showNewPassword">
+                                <button class="btn btn-soft-secondary" type="button" title="@(showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showNewPassword = !showNewPassword">
                                     <i class="bi @(showNewPassword ? "bi-eye-slash" : "bi-eye")"></i>
                                 </button>
                             </div>
@@ -171,7 +188,7 @@ else
                             <label class="form-label">Xác nhận mật khẩu mới</label>
                             <div class="input-group">
                                 <InputText class="form-control" type="@(showConfirmPassword ? "text" : "password")" @bind-Value="passwordForm.ConfirmPassword" />
-                                <button class="btn btn-outline-secondary" type="button" title="@(showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showConfirmPassword = !showConfirmPassword">
+                                <button class="btn btn-soft-secondary" type="button" title="@(showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu")" @onclick="() => showConfirmPassword = !showConfirmPassword">
                                     <i class="bi @(showConfirmPassword ? "bi-eye-slash" : "bi-eye")"></i>
                                 </button>
                             </div>
@@ -179,7 +196,7 @@ else
                         </div>
                     </div>
 
-                    <button class="btn btn-gradient-primary mt-4" type="submit" disabled="@isChangingPassword">
+                    <button class="btn btn-gradient-primary action-btn mt-4" type="submit" disabled="@isChangingPassword">
                         <i class="bi bi-key"></i> @(isChangingPassword ? "Đang xử lý..." : "Đổi mật khẩu")
                     </button>
                 </EditForm>
@@ -238,7 +255,7 @@ else
                     PhoneNumber = profile.PhoneNumber,
                     Address = profile.Address
                 };
-                AuthState.UpdateProfile(profile.FullName, profile.AvatarUrl);
+                await AuthService.UpdateCurrentUserFromProfileAsync(profile);
             }
             else
             {
@@ -310,7 +327,7 @@ else
             {
                 successMessage = "Cập nhật hồ sơ thành công.";
                 profile = response.Data;
-                AuthState.UpdateProfile(profile.FullName, profile.AvatarUrl);
+                await AuthService.UpdateCurrentUserFromProfileAsync(profile);
             }
             else
             {

@@ -21,14 +21,28 @@ public class DeleteCouponCommandHandler(IApplicationDbContext context)
 
         if (coupon is null)
         {
-            return ApiResponse<bool>.Fail("Coupon does not exist.");
+            return ApiResponse<bool>.Fail("Không tìm thấy mã giảm giá.");
         }
 
-        coupon.IsActive = false;
-        coupon.UpdatedAt = DateTime.UtcNow;
+        var hasUsageHistory = await context.CouponUsages
+            .AnyAsync(couponUsage => couponUsage.CouponId == coupon.Id, cancellationToken);
+
+        if (hasUsageHistory)
+        {
+            coupon.IsActive = false;
+            coupon.UpdatedAt = DateTime.UtcNow;
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            return ApiResponse<bool>.Ok(
+                true,
+                "Mã giảm giá đã có lịch sử sử dụng nên được chuyển sang trạng thái ngừng hoạt động để giữ lịch sử người mua.");
+        }
+
+        context.Coupons.Remove(coupon);
 
         await context.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse<bool>.Ok(true, "Coupon deleted successfully.");
+        return ApiResponse<bool>.Ok(true, "Đã xóa mã giảm giá khỏi hệ thống.");
     }
 }

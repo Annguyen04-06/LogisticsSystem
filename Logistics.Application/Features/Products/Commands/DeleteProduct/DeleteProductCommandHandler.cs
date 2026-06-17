@@ -16,19 +16,29 @@ public class DeleteProductCommandHandler(IApplicationDbContext context)
 
         if (product is null)
         {
-            return ApiResponse<bool>.Fail("Product does not exist.");
+            return ApiResponse<bool>.Fail("Không tìm thấy sản phẩm.");
         }
 
         if (request.CurrentUserRole != UserRole.Admin && product.SellerId != request.CurrentUserId)
         {
-            return ApiResponse<bool>.Fail("You cannot delete another seller's product.");
+            return ApiResponse<bool>.Fail("Không có quyền xóa sản phẩm này.");
+        }
+
+        var hasOrderDetails = await context.OrderDetails
+            .AnyAsync(detail => detail.ProductId == product.Id, cancellationToken);
+
+        if (!hasOrderDetails)
+        {
+            context.Products.Remove(product);
+            await context.SaveChangesAsync(cancellationToken);
+
+            return ApiResponse<bool>.Ok(true, "Đã xóa sản phẩm khỏi hệ thống.");
         }
 
         product.IsActive = false;
         product.UpdatedAt = DateTime.UtcNow;
-
         await context.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse<bool>.Ok(true, "Product deleted successfully.");
+        return ApiResponse<bool>.Ok(true, "Sản phẩm đã phát sinh đơn hàng nên được chuyển sang trạng thái ngừng bán để giữ lịch sử mua hàng.");
     }
 }

@@ -57,6 +57,29 @@ public class CategoryDto
     public bool IsActive { get; set; }
 }
 
+public class CreateCategoryDto
+{
+    [Required(ErrorMessage = "Vui lòng nhập tên danh mục.")]
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = string.Empty;
+}
+
+public class UpdateCategoryDto
+{
+    [Required(ErrorMessage = "Vui lòng nhập tên danh mục.")]
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = string.Empty;
+
+    [JsonPropertyName("isActive")]
+    public bool IsActive { get; set; } = true;
+}
+
 public class CartDto
 {
     [JsonPropertyName("customerId")]

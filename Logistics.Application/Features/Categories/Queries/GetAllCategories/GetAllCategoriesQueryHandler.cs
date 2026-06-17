@@ -11,8 +11,14 @@ public class GetAllCategoriesQueryHandler(IApplicationDbContext context)
 {
     public async Task<ApiResponse<List<CategoryDto>>> Handle(GetAllCategoriesQuery request, CancellationToken cancellationToken)
     {
-        var categories = await context.Categories
-            .Where(category => category.IsActive)
+        var query = context.Categories.AsQueryable();
+
+        if (!request.IncludeInactive)
+        {
+            query = query.Where(category => category.IsActive);
+        }
+
+        var categories = await query
             .OrderBy(category => category.Name)
             .Select(category => new CategoryDto
             {

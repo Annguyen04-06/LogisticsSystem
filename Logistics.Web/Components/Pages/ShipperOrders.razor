@@ -7,7 +7,7 @@
 
 <PageTitle>Đơn cần giao</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Đơn cần giao</h1>
         <p class="page-subtitle">Cập nhật trạng thái giao hàng được phân công.</p>
@@ -19,21 +19,21 @@
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success">@successMessage</div>
+    <div class="alert alert-success alert-modern fade-in">@successMessage</div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
 @if (isLoading)
 {
-    <div class="loading-state">Đang tải dữ liệu...</div>
+    <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
 }
 else if (deliveries.Count == 0)
 {
-    <div class="empty-state">Chưa có dữ liệu.</div>
+    <div class="empty-state"><i class="bi bi-truck"></i> Chưa có đơn hàng cần giao.</div>
 }
 else
 {
@@ -41,21 +41,30 @@ else
         @foreach (var delivery in deliveries)
         {
             <div class="col-lg-6 col-xxl-4">
-                <div class="modern-card shipper-delivery-card hover-lift h-100">
+                <div class="modern-card shipper-delivery-card shipper-board-card hover-lift h-100">
                     <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                         <div class="d-flex gap-3">
                             <div class="shipper-card-icon">
                                 <i class="bi bi-truck"></i>
                             </div>
                             <div>
-                                <h2 class="h5 fw-bold mb-1">Mã giao hàng #@delivery.Id</h2>
-                                <div class="text-muted small">Mã đơn #@delivery.OrderId</div>
+                                <span class="delivery-id-chip"><i class="bi bi-truck"></i> Giao hàng #@delivery.Id</span>
+                                <h2 class="h5 fw-bold mt-2 mb-1">Mã đơn #@delivery.OrderId</h2>
+                                <div class="text-muted small">Người giao hàng: @delivery.ShipperName</div>
                             </div>
                         </div>
                         <span class="status-badge @GetStatusBadgeClass(delivery.Status)">@GetVietnameseStatus(delivery.Status)</span>
                     </div>
 
                     <div class="shipper-meta-list mb-3">
+                        <div>
+                            <span>Mã đơn</span>
+                            <strong>#@delivery.OrderId</strong>
+                        </div>
+                        <div>
+                            <span>Trạng thái</span>
+                            <strong>@GetVietnameseStatus(delivery.Status)</strong>
+                        </div>
                         <div>
                             <span>Ngày nhận đơn</span>
                             <strong>@delivery.AssignedAt.ToString("dd/MM/yyyy HH:mm")</strong>
@@ -66,7 +75,7 @@ else
                         </div>
                     </div>
 
-                    <div class="d-flex flex-wrap gap-2 mt-auto">
+                    <div class="delivery-action-row mt-auto">
                         @if (delivery.Status == "Confirmed")
                         {
                             <button class="btn btn-gradient-primary action-btn" @onclick="() => StartShippingAsync(delivery.Id)">

@@ -26,6 +26,15 @@ public class AuthService(
 
             await tokenStorage.SaveAsync(currentUser);
             authState.SetCurrentUser(currentUser);
+
+            try
+            {
+                await RefreshCurrentUserAsync();
+            }
+            catch
+            {
+                // Profile refresh enriches the session with AvatarUrl, but login should still succeed without it.
+            }
         }
 
         return response;
@@ -56,17 +65,63 @@ public class AuthService(
 
     public async Task LoadSessionAsync()
     {
-        var currentUser = await tokenStorage.GetCurrentUserAsync();
+        await authState.LoadCurrentUserAsync();
+    }
 
-        if (currentUser != null)
+    public async Task RefreshCurrentUserAsync()
+    {
+        if (!authState.IsAuthenticated)
         {
-            authState.SetCurrentUser(currentUser);
+            return;
         }
+
+        var response = await apiClient.GetAsync<ApiResponse<ProfileDto>>("api/profile/me");
+
+        if (response?.Success == true && response.Data is not null)
+        {
+            await UpdateCurrentUserFromProfileAsync(response.Data);
+        }
+    }
+
+    public async Task UpdateCurrentUserFromProfileAsync(ProfileDto profile)
+    {
+        if (authState.CurrentUser is null)
+        {
+            return;
+        }
+
+        var currentUser = new CurrentUser
+        {
+            UserId = profile.Id,
+            FullName = profile.FullName,
+            Email = profile.Email,
+            Role = profile.Role,
+            Token = authState.CurrentUser.Token,
+            AvatarUrl = NormalizeImageUrl(profile.AvatarUrl)
+        };
+
+        await tokenStorage.SaveAsync(currentUser);
+        authState.SetCurrentUser(currentUser);
     }
 
     public async Task LogoutAsync()
     {
         await tokenStorage.ClearAsync();
         authState.Clear();
+    }
+
+    private static string? NormalizeImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            return null;
+        }
+
+        if (Uri.TryCreate(imageUrl, UriKind.Absolute, out _))
+        {
+            return imageUrl;
+        }
+
+        return $"http://localhost:5203/{imageUrl.TrimStart('/')}";
     }
 }

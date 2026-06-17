@@ -14,12 +14,12 @@ public class CreateCategoryCommandHandler(IApplicationDbContext context)
     {
         if (request.CurrentUserRole != UserRole.Admin)
         {
-            return ApiResponse<CategoryDto>.Fail("Only admin can create categories.");
+            return ApiResponse<CategoryDto>.Fail("Chỉ quản trị viên mới có quyền tạo danh mục.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Category.Name))
         {
-            return ApiResponse<CategoryDto>.Fail("Category name is required.");
+            return ApiResponse<CategoryDto>.Fail("Vui lòng nhập tên danh mục.");
         }
 
         var category = new Category
@@ -38,6 +38,6 @@ public class CreateCategoryCommandHandler(IApplicationDbContext context)
             Name = category.Name,
             Description = category.Description,
             IsActive = category.IsActive
-        }, "Category created successfully.");
+        }, "Tạo danh mục thành công.");
     }
 }

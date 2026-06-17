@@ -4,34 +4,39 @@
 @inject AuthStateService AuthState
 @inject CouponApiService CouponApi
 @inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
 
 <PageTitle>Quản lý mã giảm giá</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Quản lý mã giảm giá</h1>
-        <p class="page-subtitle">Tạo và theo dõi các chương trình khuyến mãi.</p>
+        <p class="page-subtitle">Tạo, cập nhật và theo dõi mã khuyến mãi.</p>
     </div>
     <button class="btn btn-gradient-primary action-btn" type="button" @onclick="StartCreate">
-        <i class="bi bi-plus-circle"></i> Tạo mã giảm giá
+        <i class="bi bi-plus-circle"></i> Tạo mã
     </button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success">@successMessage</div>
+    <div class="alert alert-success alert-modern fade-in">
+        <i class="bi bi-check-circle"></i> @successMessage
+    </div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+    </div>
 }
 
 <div class="row g-3">
     <div class="col-xl-4">
-        <div class="modern-card form-modern p-4 slide-up">
+        <div class="modern-card form-modern admin-coupon-form p-4 slide-up">
             <div class="d-flex align-items-center gap-3 mb-3">
-                <div class="stat-card-icon"><i class="bi bi-ticket-perforated"></i></div>
+                <div class="stat-icon"><i class="bi bi-ticket-perforated"></i></div>
                 <div>
                     <h2 class="h5 fw-bold mb-0">@(editingCouponId.HasValue ? "Sửa mã giảm giá" : "Thêm mã giảm giá")</h2>
                     <div class="text-muted small">Thiết lập điều kiện áp dụng mã.</div>
@@ -68,7 +73,7 @@
 
                 <div class="form-check form-switch mt-3">
                     <InputCheckbox class="form-check-input" @bind-Value="couponForm.IsActive" />
-                    <label class="form-check-label">Trạng thái</label>
+                    <label class="form-check-label">Đang hoạt động</label>
                 </div>
 
                 <div class="d-flex gap-2 mt-4">
@@ -77,7 +82,7 @@
                     </button>
                     @if (editingCouponId.HasValue)
                     {
-                        <button class="btn btn-outline-secondary action-btn" type="button" @onclick="StartCreate">
+                        <button class="btn btn-soft-secondary action-btn" type="button" @onclick="StartCreate">
                             <i class="bi bi-x-circle"></i> Hủy
                         </button>
                     }
@@ -87,18 +92,18 @@
     </div>
 
     <div class="col-xl-8">
-        <div class="modern-card modern-table-wrapper slide-up">
-            <div class="p-4 pb-2 d-flex align-items-center gap-3">
-                <div class="stat-card-icon"><i class="bi bi-tags"></i></div>
+        <div class="modern-card modern-table-wrapper admin-coupon-table slide-up">
+            <div class="admin-card-header">
+                <div class="stat-icon"><i class="bi bi-ticket-perforated"></i></div>
                 <div>
-                    <h2 class="h5 fw-bold mb-0">Danh sách mã giảm giá</h2>
-                    <div class="text-muted small">Theo dõi lượt dùng và trạng thái khuyến mãi.</div>
+                    <h2>Danh sách mã giảm giá</h2>
+                    <p>Theo dõi lượt dùng và trạng thái khuyến mãi.</p>
                 </div>
             </div>
 
             @if (isLoading)
             {
-                <div class="loading-state">Đang tải dữ liệu...</div>
+                <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
             }
             else
             {
@@ -112,7 +117,6 @@
                                 <th>Đơn tối thiểu</th>
                                 <th>Ngày bắt đầu</th>
                                 <th>Ngày kết thúc</th>
-                                <th>Số lượt dùng</th>
                                 <th>Đã dùng</th>
                                 <th>Trạng thái</th>
                                 <th class="text-end">Thao tác</th>
@@ -122,7 +126,12 @@
                             @if (coupons.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="10"><div class="empty-state">Chưa có dữ liệu.</div></td>
+                                    <td colspan="9">
+                                        <div class="empty-state">
+                                            <i class="bi bi-inbox"></i>
+                                            Chưa có dữ liệu.
+                                        </div>
+                                    </td>
                                 </tr>
                             }
                             else
@@ -131,25 +140,26 @@
                                 {
                                     <tr>
                                         <td class="fw-semibold">@coupon.Code</td>
-                                        <td>@DisplayDiscountType(coupon.DiscountType)</td>
-                                        <td>@DisplayDiscountValue(coupon)</td>
-                                        <td>@FormatCurrency(coupon.MinOrderAmount)</td>
+                                        <td><span class="status-badge badge-soft-info">@DisplayDiscountType(coupon.DiscountType)</span></td>
+                                        <td class="currency-value">@DisplayDiscountValue(coupon)</td>
+                                        <td class="currency-value">@FormatCurrency(coupon.MinOrderAmount)</td>
                                         <td>@coupon.StartDate.ToString("dd/MM/yyyy")</td>
                                         <td>@coupon.EndDate.ToString("dd/MM/yyyy")</td>
-                                        <td>@coupon.UsageLimit.ToString("N0")</td>
-                                        <td>@coupon.UsedCount.ToString("N0")</td>
+                                        <td>@coupon.UsedCount.ToString("N0") / @coupon.UsageLimit.ToString("N0")</td>
                                         <td>
-                                            <span class="status-badge @(coupon.IsActive ? "status-delivered" : "text-bg-secondary")">
+                                            <span class="status-badge @(coupon.IsActive ? "badge-soft-success" : "badge-soft-secondary")">
                                                 @(coupon.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
                                             </span>
                                         </td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-soft-warning action-btn me-1" type="button" @onclick="() => StartEdit(coupon)">
-                                                <i class="bi bi-pencil-square"></i> Sửa
-                                            </button>
-                                            <button class="btn btn-sm btn-soft-danger action-btn" type="button" @onclick="() => DeleteCouponAsync(coupon.Id)">
-                                                <i class="bi bi-trash"></i> Xóa
-                                            </button>
+                                            <div class="admin-row-actions">
+                                                <button class="btn btn-sm btn-soft-warning action-btn" type="button" @onclick="() => StartEdit(coupon)">
+                                                    <i class="bi bi-pencil-square"></i> Sửa
+                                                </button>
+                                                <button class="btn btn-sm btn-soft-danger action-btn" type="button" @onclick="() => DeleteCouponAsync(coupon.Id)">
+                                                    <i class="bi bi-trash"></i> Xóa
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
@@ -190,8 +200,13 @@
         StateHasChanged();
     }
 
-    private async Task LoadCouponsAsync()
+    private async Task LoadCouponsAsync(bool clearMessages = false)
     {
+        if (clearMessages)
+        {
+            ClearMessages();
+        }
+
         try
         {
             isLoading = true;
@@ -200,7 +215,6 @@
             if (response?.Success == true)
             {
                 coupons = response.Data ?? [];
-                errorMessage = null;
             }
             else
             {
@@ -253,8 +267,10 @@
 
             if (response?.Success == true)
             {
-                successMessage = editingCouponId.HasValue ? "Cập nhật mã giảm giá thành công." : "Tạo mã giảm giá thành công.";
-                StartCreate();
+                successMessage = editingCouponId.HasValue
+                    ? "Cập nhật mã giảm giá thành công."
+                    : "Tạo mã giảm giá thành công.";
+                ResetForm();
                 await LoadCouponsAsync();
             }
             else
@@ -276,13 +292,22 @@
     {
         ClearMessages();
 
+        var confirmed = await JsRuntime.InvokeAsync<bool>(
+            "confirm",
+            "Bạn có chắc muốn xóa mã giảm giá này không? Nếu mã đã có lịch sử sử dụng, hệ thống sẽ chuyển sang trạng thái ngừng hoạt động để giữ lịch sử người mua.");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
         try
         {
             var response = await CouponApi.DeleteAsync(id);
 
             if (response?.Success == true)
             {
-                successMessage = "Xóa mã giảm giá thành công.";
+                successMessage = response.Message;
                 await LoadCouponsAsync();
             }
             else
@@ -298,8 +323,7 @@
 
     private void StartCreate()
     {
-        editingCouponId = null;
-        couponForm = CreateDefaultForm();
+        ResetForm();
         ClearMessages();
     }
 
@@ -335,6 +359,12 @@
         }
 
         return true;
+    }
+
+    private void ResetForm()
+    {
+        editingCouponId = null;
+        couponForm = CreateDefaultForm();
     }
 
     private void ClearMessages()

@@ -9,10 +9,10 @@
 
 <PageTitle>Báo cáo thống kê</PageTitle>
 
-<div class="page-header">
+<div class="page-header analytics-header admin-compact-header fade-in">
     <div>
         <h1 class="page-title">Báo cáo thống kê</h1>
-        <p class="page-subtitle">Xuất Excel, PDF và theo dõi hiệu quả kinh doanh.</p>
+        <p class="page-subtitle">Theo dõi doanh thu, đơn hàng, sản phẩm và người bán.</p>
     </div>
     <button class="btn btn-soft-primary action-btn" type="button" @onclick="ReloadAsync">
         <i class="bi bi-arrow-repeat"></i> Tải lại
@@ -21,12 +21,12 @@
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success">@successMessage</div>
+    <div class="alert alert-success alert-modern">@successMessage</div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern">@errorMessage</div>
 }
 
 @if (isLoading)
@@ -39,39 +39,61 @@ else
     {
         <div class="row g-3 mb-4 fade-in">
             @StatCard("Tổng doanh thu", FormatCurrency(adminRevenue.TotalRevenue), "Chỉ tính đơn đã giao", "bi-cash-stack")
-            @StatCard("Tổng đơn hàng", adminRevenue.TotalOrders.ToString("N0"), "Tất cả đơn hàng", "bi-receipt")
+            @StatCard("Tổng đơn hàng", adminRevenue.TotalOrders.ToString("N0"), "Tất cả đơn trong hệ thống", "bi-receipt")
             @StatCard("Đơn đã giao", adminRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất", "bi-check2-circle")
-            @StatCard("Đơn chờ xử lý", adminRevenue.PendingOrders.ToString("N0"), "Đơn đang chờ", "bi-hourglass-split")
-            @StatCard("Đơn đã hủy", adminRevenue.CancelledOrders.ToString("N0"), "Đơn không hoàn tất", "bi-x-circle")
+            @StatCard("Đơn chờ xử lý", adminRevenue.PendingOrders.ToString("N0"), "Cần theo dõi", "bi-hourglass-split")
+            @StatCard("Đơn đã hủy", adminRevenue.CancelledOrders.ToString("N0"), "Không hoàn tất", "bi-x-circle")
+            @StatCard("Người bán tốt nhất", BestSeller?.SellerName ?? "Chưa có", BestSeller is null ? "Chưa có dữ liệu" : FormatCurrency(BestSeller.TotalRevenue), "bi-award")
         </div>
 
-        @if (BestSeller is not null)
-        {
-            <div class="modern-card p-4 mb-4 slide-up">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="stat-card-icon"><i class="bi bi-award"></i></div>
+        <div class="row g-3 mb-4">
+            <div class="col-xl-8">
+                <div class="modern-card admin-report-summary h-100 slide-up">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
                         <div>
-                            <h2 class="h5 fw-bold mb-0">Người bán doanh thu cao nhất</h2>
-                            <div class="text-muted small">@BestSeller.SellerName</div>
+                            <div class="analytics-eyebrow">Tổng quan báo cáo</div>
+                            <h2 class="admin-section-title">Hiệu quả vận hành theo đơn đã giao</h2>
+                            <p class="admin-section-subtitle">Doanh thu chỉ tính các đơn đã giao thành công. Dữ liệu bên dưới giúp theo dõi sản phẩm bán chạy và người bán có doanh thu tốt nhất.</p>
                         </div>
-                    </div>
-                    <div class="text-end">
-                        <div class="money-text">@FormatCurrency(BestSeller.TotalRevenue)</div>
-                        <div class="text-muted small">Đơn đã giao: @BestSeller.DeliveredOrders.ToString("N0")</div>
+                        <div class="admin-status-chip-row">
+                            <span class="status-badge status-delivered">Đã giao @adminRevenue.DeliveredOrders.ToString("N0")</span>
+                            <span class="status-badge status-pending">Chờ xử lý @adminRevenue.PendingOrders.ToString("N0")</span>
+                            <span class="status-badge status-cancelled">Đã hủy @adminRevenue.CancelledOrders.ToString("N0")</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        }
 
-        <div class="row g-3 mb-4">
-            <div class="col-xl-6">
-                <div class="modern-card p-4 h-100 slide-up">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="stat-card-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="col-xl-4">
+                <div class="modern-card top-seller-mini-card h-100 slide-up">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon"><i class="bi bi-trophy"></i></div>
                         <div>
-                            <h2 class="h5 fw-bold mb-0">Biểu đồ doanh thu theo tháng</h2>
-                            <div class="text-muted small">Doanh thu từ các đơn đã giao.</div>
+                            <div class="text-muted small fw-bold">Người bán doanh thu cao nhất</div>
+                            <h2 class="admin-mini-title">@(BestSeller?.SellerName ?? "Chưa có dữ liệu")</h2>
+                        </div>
+                    </div>
+                    @if (BestSeller is not null)
+                    {
+                        <div class="money-text admin-mini-value currency-value mt-3">@FormatCurrency(BestSeller.TotalRevenue)</div>
+                        <div class="text-muted small">@BestSeller.DeliveredOrders.ToString("N0") đơn đã giao / @BestSeller.TotalProductsSold.ToString("N0") sản phẩm đã bán</div>
+                    }
+                    else
+                    {
+                        <div class="empty-state compact-empty mt-3">Chưa có dữ liệu người bán nổi bật.</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-xxl-6">
+                <div class="chart-card report-chart-card h-100 slide-up">
+                    <div class="chart-card-header">
+                        <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                        <div>
+                            <h2>Doanh thu theo tháng</h2>
+                            <p>Xu hướng doanh thu từ đơn đã giao.</p>
                         </div>
                     </div>
                     <div class="chart-box">
@@ -80,13 +102,13 @@ else
                 </div>
             </div>
 
-            <div class="col-xl-6">
-                <div class="modern-card p-4 h-100 slide-up">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="stat-card-icon"><i class="bi bi-pie-chart"></i></div>
+            <div class="col-xxl-6">
+                <div class="chart-card report-chart-card h-100 slide-up">
+                    <div class="chart-card-header">
+                        <div class="stat-icon"><i class="bi bi-pie-chart"></i></div>
                         <div>
-                            <h2 class="h5 fw-bold mb-0">Đơn hàng theo trạng thái</h2>
-                            <div class="text-muted small">Phân bố trạng thái đơn hàng.</div>
+                            <h2>Đơn hàng theo trạng thái</h2>
+                            <p>Phân bố tiến độ xử lý đơn hàng.</p>
                         </div>
                     </div>
                     <div class="chart-box">
@@ -95,29 +117,136 @@ else
                 </div>
             </div>
 
-            <div class="col-12">
-                <div class="modern-card p-4 slide-up">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="stat-card-icon"><i class="bi bi-bar-chart-line"></i></div>
+            <div class="col-xxl-6">
+                <div class="chart-card report-chart-card h-100 slide-up">
+                    <div class="chart-card-header">
+                        <div class="stat-icon"><i class="bi bi-bar-chart-line"></i></div>
                         <div>
-                            <h2 class="h5 fw-bold mb-0">Top người bán theo doanh thu</h2>
-                            <div class="text-muted small">Xếp hạng theo doanh thu đơn đã giao.</div>
+                            <h2>Top người bán theo doanh thu</h2>
+                            <p>Xếp hạng theo doanh thu đơn đã giao.</p>
                         </div>
                     </div>
-                    <div class="chart-box chart-box-wide">
+                    <div class="chart-box">
                         <canvas id="topSellersChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xxl-6">
+                <div class="chart-card report-chart-card h-100 slide-up">
+                    <div class="chart-card-header">
+                        <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+                        <div>
+                            <h2>Top sản phẩm bán chạy</h2>
+                            <p>Sản phẩm có số lượng bán cao nhất.</p>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="topProductsChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="modern-card form-section p-4 mb-4 slide-up">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="row g-4 mb-4">
+            <div class="col-xxl-7">
+                <div class="modern-card modern-table-wrapper h-100 slide-up">
+                    <div class="admin-card-header">
+                        <div class="stat-icon"><i class="bi bi-shop"></i></div>
+                        <div>
+                            <h2>Top người bán theo doanh thu</h2>
+                            <p>Người bán có doanh thu cao nhất trong hệ thống.</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle modern-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã</th>
+                                    <th>Người bán</th>
+                                    <th>Tổng đơn</th>
+                                    <th>Đã giao</th>
+                                    <th>Đã bán</th>
+                                    <th>Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (topSellers.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6"><div class="empty-state compact-empty">Chưa có dữ liệu.</div></td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var seller in topSellers.Take(10))
+                                    {
+                                        <tr>
+                                            <td>#@seller.SellerId</td>
+                                            <td class="fw-semibold">@seller.SellerName</td>
+                                            <td>@seller.TotalOrders.ToString("N0")</td>
+                                            <td>@seller.DeliveredOrders.ToString("N0")</td>
+                                            <td>@seller.TotalProductsSold.ToString("N0")</td>
+                                            <td class="fw-bold currency-value">@FormatCurrency(seller.TotalRevenue)</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xxl-5">
+                <div class="modern-card modern-table-wrapper h-100 slide-up">
+                    <div class="admin-card-header">
+                        <div class="stat-icon"><i class="bi bi-trophy"></i></div>
+                        <div>
+                            <h2>Top sản phẩm bán chạy</h2>
+                            <p>Xếp hạng theo số lượng đã bán.</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle modern-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>Đã bán</th>
+                                    <th>Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (topProducts.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="3"><div class="empty-state compact-empty">Chưa có dữ liệu.</div></td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var product in topProducts.Take(10))
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@product.ProductName</td>
+                                            <td>@product.TotalSold.ToString("N0")</td>
+                                            <td class="fw-bold currency-value">@FormatCurrency(product.TotalRevenue)</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modern-card report-export-card slide-up">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="stat-card-icon"><i class="bi bi-download"></i></div>
+                    <div class="stat-icon"><i class="bi bi-download"></i></div>
                     <div>
-                        <h2 class="h5 fw-bold mb-0">Xuất báo cáo</h2>
-                        <div class="text-muted small">Tải dữ liệu Excel và hóa đơn PDF.</div>
+                        <h2 class="admin-section-title mb-1">Xuất dữ liệu</h2>
+                        <div class="text-muted small">Tải Excel hoặc hóa đơn PDF phục vụ đối soát.</div>
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
@@ -129,94 +258,25 @@ else
                     </button>
                 </div>
             </div>
-        </div>
 
-        <div class="modern-card modern-table-wrapper mb-4 slide-up">
-            <div class="p-4 pb-2 d-flex align-items-center gap-3">
-                <div class="stat-card-icon"><i class="bi bi-shop"></i></div>
-                <div>
-                    <h2 class="h5 fw-bold mb-0">Top người bán</h2>
-                    <div class="text-muted small">Người bán có doanh thu cao nhất trong hệ thống.</div>
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle modern-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>Mã người bán</th>
-                            <th>Người bán</th>
-                            <th>Tổng đơn</th>
-                            <th>Đơn đã giao</th>
-                            <th>Sản phẩm đã bán</th>
-                            <th>Doanh thu</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (topSellers.Count == 0)
-                        {
-                            <tr>
-                                <td colspan="6"><div class="empty-state">Chưa có dữ liệu.</div></td>
-                            </tr>
-                        }
-                        else
-                        {
-                            @foreach (var seller in topSellers)
-                            {
-                                <tr>
-                                    <td>#@seller.SellerId</td>
-                                    <td class="fw-semibold">@seller.SellerName</td>
-                                    <td>@seller.TotalOrders.ToString("N0")</td>
-                                    <td>@seller.DeliveredOrders.ToString("N0")</td>
-                                    <td>@seller.TotalProductsSold.ToString("N0")</td>
-                                    <td class="fw-bold">@FormatCurrency(seller.TotalRevenue)</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="modern-card modern-table-wrapper mb-4 slide-up">
-            <div class="p-4 pb-2 d-flex align-items-center gap-3">
-                <div class="stat-card-icon"><i class="bi bi-trophy"></i></div>
-                <div>
-                    <h2 class="h5 fw-bold mb-0">Sản phẩm bán chạy</h2>
-                    <div class="text-muted small">Xếp hạng theo số lượng đã bán.</div>
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle modern-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>Mã sản phẩm</th>
-                            <th>Tên sản phẩm</th>
-                            <th>Số lượng đã bán</th>
-                            <th>Doanh thu</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (topProducts.Count == 0)
-                        {
-                            <tr>
-                                <td colspan="4"><div class="empty-state">Chưa có dữ liệu.</div></td>
-                            </tr>
-                        }
-                        else
-                        {
-                            @foreach (var product in topProducts)
-                            {
-                                <tr>
-                                    <td>#@product.ProductId</td>
-                                    <td class="fw-semibold">@product.ProductName</td>
-                                    <td>@product.TotalSold.ToString("N0")</td>
-                                    <td class="fw-bold">@FormatCurrency(product.TotalRevenue)</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
+            @if (CanDownloadInvoice)
+            {
+                <EditForm Model="@invoiceForm" OnValidSubmit="DownloadInvoicePdfAsync" class="mt-3">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4 col-xl-3">
+                            <label class="form-label">Mã đơn hàng</label>
+                            <InputNumber class="form-control" @bind-Value="invoiceForm.OrderId" />
+                        </div>
+                        <div class="col-md-auto">
+                            <button class="btn btn-soft-warning action-btn" type="submit" disabled="@isDownloading">
+                                <i class="bi bi-filetype-pdf"></i> Tải hóa đơn PDF
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            }
         </div>
     }
 
@@ -228,40 +288,19 @@ else
             @StatCard("Đơn đã giao", sellerRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất", "bi-check2-circle")
         </div>
 
-        <div class="modern-card form-section p-4 mb-4">
-            <h2 class="h5 fw-bold mb-3">Báo cáo doanh thu cá nhân</h2>
-            <button class="btn btn-gradient-success action-btn" type="button" @onclick="DownloadSellerRevenueExcelAsync" disabled="@isDownloading">
-                <i class="bi bi-file-earmark-excel"></i> Xuất Excel doanh thu cá nhân
-            </button>
-        </div>
-    }
-
-    @if (CanDownloadInvoice)
-    {
-        <div class="modern-card form-modern p-4 slide-up">
-            <div class="d-flex align-items-center gap-3 mb-3">
-                <div class="stat-card-icon"><i class="bi bi-filetype-pdf"></i></div>
-                <div>
-                    <h2 class="h5 fw-bold mb-0">Tải hóa đơn PDF</h2>
-                    <div class="text-muted small">Nhập mã đơn hàng để tải hóa đơn.</div>
+        <div class="modern-card report-export-card">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon"><i class="bi bi-file-earmark-excel"></i></div>
+                    <div>
+                        <h2 class="admin-section-title mb-1">Báo cáo doanh thu cá nhân</h2>
+                        <div class="text-muted small">Xuất Excel doanh thu của người bán hiện tại.</div>
+                    </div>
                 </div>
+                <button class="btn btn-gradient-success action-btn" type="button" @onclick="DownloadSellerRevenueExcelAsync" disabled="@isDownloading">
+                    <i class="bi bi-file-earmark-excel"></i> Xuất Excel doanh thu cá nhân
+                </button>
             </div>
-            <EditForm Model="@invoiceForm" OnValidSubmit="DownloadInvoicePdfAsync">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label">Mã đơn hàng</label>
-                        <InputNumber class="form-control" @bind-Value="invoiceForm.OrderId" />
-                    </div>
-                    <div class="col-md-auto">
-                        <button class="btn btn-soft-warning action-btn" type="submit" disabled="@isDownloading">
-                            <i class="bi bi-filetype-pdf"></i> Tải hóa đơn PDF
-                        </button>
-                    </div>
-                </div>
-            </EditForm>
         </div>
     }
 }
@@ -422,18 +461,11 @@ else
             return;
         }
 
-        var monthLabels = ordersByMonth
-            .Select(item => $"{item.Month:00}/{item.Year}")
-            .ToArray();
-        var monthRevenue = ordersByMonth
-            .Select(item => (double)item.Revenue)
-            .ToArray();
-
         await JsRuntime.InvokeVoidAsync(
             "renderLineChart",
             "revenueByMonthChart",
-            monthLabels,
-            monthRevenue,
+            ordersByMonth.Select(item => $"{item.Month:00}/{item.Year}").ToArray(),
+            ordersByMonth.Select(item => (double)item.Revenue).ToArray(),
             "Doanh thu");
 
         await JsRuntime.InvokeVoidAsync(
@@ -448,6 +480,13 @@ else
             topSellers.Select(item => item.SellerName).ToArray(),
             topSellers.Select(item => (double)item.TotalRevenue).ToArray(),
             "Doanh thu");
+
+        await JsRuntime.InvokeVoidAsync(
+            "renderBarChart",
+            "topProductsChart",
+            topProducts.Take(8).Select(item => item.ProductName).ToArray(),
+            topProducts.Take(8).Select(item => item.TotalSold).ToArray(),
+            "Số lượng bán");
     }
 
     private async Task DownloadOrdersExcelAsync()
@@ -519,11 +558,11 @@ else
         return $"{value:N0} đ";
     }
 
-    private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-sm-6 col-xl">
+    private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-12 col-md-6 col-xl-3">
         <div class="stat-card hover-lift h-100">
-            <div class="stat-card-icon"><i class="bi @icon"></i></div>
+            <div class="stat-icon"><i class="bi @icon"></i></div>
             <div class="stat-card-title">@label</div>
-            <div class="stat-card-value">@value</div>
+            <div class="stat-card-value currency-value">@value</div>
             <div class="stat-card-description">@note</div>
         </div>
     </div>;

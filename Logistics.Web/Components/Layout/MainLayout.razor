@@ -2,7 +2,6 @@
 @implements IDisposable
 @inject AuthService AuthService
 @inject AuthStateService AuthState
-@inject ProfileApiService ProfileApi
 @inject NavigationManager Navigation
 
 <div class="app-shell">
@@ -12,7 +11,7 @@
 
     <div class="app-main">
         <header class="topbar">
-            <div>
+            <div class="topbar-heading">
                 <div class="topbar-kicker">Hệ thống quản lý Logistics</div>
                 <h1 class="topbar-title">Bảng điều khiển vận hành</h1>
             </div>
@@ -21,11 +20,11 @@
                 <div class="user-avatar">
                     @if (!string.IsNullOrWhiteSpace(AuthState.CurrentUser?.AvatarUrl))
                     {
-                        <img src="@AuthState.CurrentUser.AvatarUrl" alt="Ảnh đại diện" />
+                        <img class="avatar-img" src="@AuthState.CurrentUser.AvatarUrl" alt="Ảnh đại diện" />
                     }
                     else
                     {
-                        <span>@GetInitial(AuthState.DisplayName)</span>
+                        <span class="avatar-fallback">@GetInitial(AuthState.DisplayName)</span>
                     }
                 </div>
                 <div class="user-meta">
@@ -42,7 +41,7 @@
             </div>
         </header>
 
-        <main class="page-container fade-in">
+        <main class="page-container page-shell fade-in">
             @Body
         </main>
     </div>
@@ -84,12 +83,7 @@
     {
         try
         {
-            var response = await ProfileApi.GetMyProfileAsync();
-
-            if (response?.Success == true && response.Data is not null)
-            {
-                AuthState.UpdateProfile(response.Data.FullName, response.Data.AvatarUrl);
-            }
+            await AuthService.RefreshCurrentUserAsync();
         }
         catch
         {

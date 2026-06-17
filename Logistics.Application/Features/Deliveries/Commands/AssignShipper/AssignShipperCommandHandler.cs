@@ -33,17 +33,32 @@ public class AssignShipperCommandHandler(IApplicationDbContext context)
 
         if (order.Status != OrderStatus.Confirmed)
         {
-            return ApiResponse<DeliveryDto>.Fail("Only confirmed orders can be assigned to shipper.");
+            return ApiResponse<DeliveryDto>.Fail("Chỉ có thể gán người giao hàng cho đơn đã xác nhận.");
         }
 
         var shipper = await context.Users
             .FirstOrDefaultAsync(
-                user => user.Id == request.AssignShipper.ShipperId && user.Role == UserRole.Shipper,
+                user => user.Id == request.AssignShipper.ShipperId,
                 cancellationToken);
 
         if (shipper is null)
         {
-            return ApiResponse<DeliveryDto>.Fail("Shipper does not exist.");
+            return ApiResponse<DeliveryDto>.Fail("Không tìm thấy người giao hàng.");
+        }
+
+        if (shipper.Role != UserRole.Shipper)
+        {
+            return ApiResponse<DeliveryDto>.Fail("Tài khoản được chọn không phải là người giao hàng.");
+        }
+
+        if (!shipper.IsActive)
+        {
+            return ApiResponse<DeliveryDto>.Fail("Tài khoản người giao hàng đã bị vô hiệu hóa.");
+        }
+
+        if (!shipper.IsApproved)
+        {
+            return ApiResponse<DeliveryDto>.Fail("Tài khoản người giao hàng chưa được phê duyệt.");
         }
 
         var existingDelivery = await context.Deliveries

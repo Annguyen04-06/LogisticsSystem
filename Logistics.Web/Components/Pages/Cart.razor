@@ -7,7 +7,7 @@
 
 <PageTitle>Giỏ hàng</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Giỏ hàng của tôi</h1>
         <p class="page-subtitle">Kiểm tra sản phẩm và tạo đơn hàng.</p>
@@ -19,7 +19,7 @@
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success">
+    <div class="alert alert-success alert-modern fade-in">
         @successMessage
         @if (orderCreated)
         {
@@ -30,20 +30,24 @@
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
 @if (isLoading)
 {
-    <div class="loading-state">Đang tải dữ liệu...</div>
+    <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
 }
 else
 {
     <div class="row g-3">
         <div class="col-xl-8">
-            <div class="modern-card modern-table-wrapper">
-                <div class="p-4 pb-2">
-                    <h2 class="h5 fw-bold mb-0">Sản phẩm trong giỏ</h2>
+            <div class="modern-card modern-table-wrapper slide-up">
+                <div class="admin-card-header">
+                    <div class="stat-icon"><i class="bi bi-cart3"></i></div>
+                    <div>
+                        <h2>Sản phẩm trong giỏ</h2>
+                        <p>Kiểm tra số lượng trước khi đặt hàng.</p>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle modern-table mb-0">
@@ -60,7 +64,7 @@ else
                             @if (cart.Items.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="5"><div class="empty-state">Chưa có dữ liệu.</div></td>
+                                    <td colspan="5"><div class="empty-state"><i class="bi bi-cart-x"></i> Chưa có dữ liệu.</div></td>
                                 </tr>
                             }
                             else
@@ -68,12 +72,12 @@ else
                                 @foreach (var item in cart.Items)
                                 {
                                     <tr>
-                                        <td class="fw-semibold">@item.ProductName</td>
-                                        <td>@FormatMoney(item.Price)</td>
+                                        <td class="fw-semibold"><span class="cart-item-name">@item.ProductName</span></td>
+                                        <td class="currency-value">@FormatMoney(item.Price)</td>
                                         <td>
                                             <input class="form-control form-control-sm quantity-input" type="number" min="1" @bind="item.Quantity" />
                                         </td>
-                                        <td class="fw-bold">@FormatMoney(item.TotalPrice)</td>
+                                        <td class="fw-bold currency-value">@FormatMoney(item.TotalPrice)</td>
                                         <td class="text-end">
                                             <button class="btn btn-sm btn-soft-warning action-btn me-1" @onclick="() => UpdateCartItemAsync(item)">
                                                 <i class="bi bi-pencil-square"></i> Cập nhật
@@ -96,17 +100,17 @@ else
                 <DataAnnotationsValidator />
                 <ValidationSummary />
 
-                <div class="modern-card customer-summary-card p-4 mb-3">
+                <div class="modern-card customer-summary-card cart-summary-card p-4 mb-3 hover-lift">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="text-muted fw-semibold">Tổng tiền</span>
-                        <span class="summary-money">@FormatMoney(cart.TotalAmount)</span>
+                        <span class="summary-money currency-value">@FormatMoney(cart.TotalAmount)</span>
                     </div>
                     <button class="btn btn-gradient-success w-100 action-btn" type="submit" disabled="@(cart.Items.Count == 0 || isSubmittingOrder)">
                         <i class="bi bi-receipt"></i> @(isSubmittingOrder ? "Đang đặt hàng..." : "Đặt hàng")
                     </button>
                 </div>
 
-                <div class="modern-card form-modern p-4">
+                <div class="modern-card form-modern p-4 slide-up">
                     <h2 class="h5 fw-bold mb-3">Thông tin đặt hàng</h2>
                     <div class="mb-3">
                         <label class="form-label">Địa chỉ giao hàng</label>

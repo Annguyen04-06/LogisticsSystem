@@ -9,14 +9,15 @@ using Microsoft.EntityFrameworkCore;
 namespace Logistics.API.Controllers;
 
 [ApiController]
-[Route("api/uploads")]
+[Route("api/[controller]")]
 public class UploadsController(
     IApplicationDbContext context,
     ICloudinaryService cloudinaryService) : ControllerBase
 {
     [HttpPost("avatar")]
+    [Consumes("multipart/form-data")]
     [Authorize(Roles = "Customer,Seller,Shipper,Admin")]
-    public async Task<IActionResult> UploadAvatar([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<IActionResult> UploadAvatar(IFormFile file, CancellationToken cancellationToken)
     {
         if (!TryGetCurrentUser(out var currentUserId, out _))
         {
@@ -53,10 +54,11 @@ public class UploadsController(
     }
 
     [HttpPost("products/{productId:int}/image")]
+    [Consumes("multipart/form-data")]
     [Authorize(Roles = "Seller,Admin")]
     public async Task<IActionResult> UploadProductImage(
-        int productId,
-        [FromForm] IFormFile file,
+        [FromRoute] int productId,
+        IFormFile file,
         CancellationToken cancellationToken)
     {
         if (!TryGetCurrentUser(out var currentUserId, out var currentUserRole))

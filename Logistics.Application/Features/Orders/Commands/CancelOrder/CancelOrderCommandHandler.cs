@@ -26,6 +26,21 @@ public class CancelOrderCommandHandler(IApplicationDbContext context)
             return ApiResponse<OrderDto>.Fail("Order does not exist.");
         }
 
+        if (order.Status == OrderStatus.Delivered)
+        {
+            return ApiResponse<OrderDto>.Fail("Không thể hủy đơn hàng đã giao.");
+        }
+
+        var payment = await context.Payments
+            .Where(payment => payment.OrderId == order.Id)
+            .OrderByDescending(payment => payment.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (payment?.Status == PaymentStatus.Refunded)
+        {
+            return ApiResponse<OrderDto>.Fail("Đơn hàng đã được hoàn tiền trước đó.");
+        }
+
         if (request.CurrentUserRole == UserRole.Customer)
         {
             if (order.CustomerId != request.CurrentUserId)
@@ -75,6 +90,43 @@ public class CancelOrderCommandHandler(IApplicationDbContext context)
             });
         }
 
+        var refundHappened = false;
+
+        if (payment?.Status == PaymentStatus.Paid &&
+            payment.Method is PaymentMethod.Wallet or PaymentMethod.BankingDemo)
+        {
+            var wallet = await context.Wallets
+                .FirstOrDefaultAsync(wallet => wallet.UserId == order.CustomerId, cancellationToken);
+
+            if (wallet is null)
+            {
+                wallet = new Wallet
+                {
+                    UserId = order.CustomerId,
+                    Balance = 0
+                };
+
+                context.Wallets.Add(wallet);
+            }
+
+            wallet.Balance += payment.Amount;
+            wallet.UpdatedAt = DateTime.UtcNow;
+
+            payment.Status = PaymentStatus.Refunded;
+            payment.UpdatedAt = DateTime.UtcNow;
+
+            context.PaymentTransactions.Add(new PaymentTransaction
+            {
+                PaymentId = payment.Id,
+                TransactionCode = "Refund",
+                Amount = payment.Amount,
+                Status = PaymentStatus.Refunded,
+                Note = $"Hoàn tiền do hủy đơn hàng #{order.Id}"
+            });
+
+            refundHappened = true;
+        }
+
         order.Status = OrderStatus.Cancelled;
         order.UpdatedAt = DateTime.UtcNow;
 
@@ -85,6 +137,10 @@ public class CancelOrderCommandHandler(IApplicationDbContext context)
             context.Orders.Where(item => item.Id == order.Id),
             cancellationToken);
 
-        return ApiResponse<OrderDto>.Ok(orderDto!, "Order cancelled successfully.");
+        var message = refundHappened
+            ? "Hủy đơn hàng thành công. Số tiền đã được hoàn vào ví của khách hàng."
+            : "Hủy đơn hàng thành công.";
+
+        return ApiResponse<OrderDto>.Ok(orderDto!, message);
     }
 }

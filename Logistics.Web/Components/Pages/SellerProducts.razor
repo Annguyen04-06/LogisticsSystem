@@ -9,28 +9,34 @@
 
 <PageTitle>Quản lý sản phẩm</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Quản lý sản phẩm</h1>
         <p class="page-subtitle">Thêm, cập nhật và ngừng bán sản phẩm của người bán.</p>
     </div>
-    <button class="btn btn-gradient-primary" @onclick="StartCreate">
+    <button class="btn btn-gradient-primary action-btn" @onclick="StartCreate">
         <i class="bi bi-plus-circle"></i> Tạo sản phẩm
     </button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <div class="alert alert-success">@successMessage</div>
+    <div class="alert alert-success alert-modern fade-in">@successMessage</div>
 }
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
-<div class="modern-card form-modern p-4 mb-3">
-    <h2 class="h5 fw-bold mb-3">@(editingProductId.HasValue ? "Cập nhật sản phẩm" : "Tạo sản phẩm")</h2>
+<div class="modern-card form-modern seller-product-form-card mb-3 slide-up">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+        <div>
+            <h2 class="h5 fw-bold mb-0">@(editingProductId.HasValue ? "Cập nhật sản phẩm" : "Tạo sản phẩm")</h2>
+            <div class="text-muted small">Nhập thông tin sản phẩm và tải ảnh minh họa nếu có.</div>
+        </div>
+    </div>
     <EditForm Model="@productForm" OnValidSubmit="SaveProductAsync">
         <DataAnnotationsValidator />
         <ValidationSummary />
@@ -65,13 +71,15 @@
             @if (!editingProductId.HasValue)
             {
                 <div class="col-md-4">
-                    <label class="form-label">Ảnh sản phẩm</label>
-                    <InputFile class="form-control" OnChange="OnCreateProductImageSelected" accept=".jpg,.jpeg,.png,.webp" />
-                    <div class="form-text">Hỗ trợ JPG, PNG, WEBP. Dung lượng tối đa 3MB.</div>
-                    @if (createProductImage is not null)
-                    {
-                        <div class="text-muted small mt-1">Đã chọn: @createProductImage.Name</div>
-                    }
+                    <div class="seller-image-field">
+                        <label class="form-label">Ảnh sản phẩm</label>
+                        <InputFile class="form-control" OnChange="OnCreateProductImageSelected" accept=".jpg,.jpeg,.png,.webp" />
+                        <div class="form-text">Hỗ trợ JPG, PNG, WEBP. Dung lượng tối đa 3MB.</div>
+                        @if (createProductImage is not null)
+                        {
+                            <div class="selected-file-chip"><i class="bi bi-image"></i> @createProductImage.Name</div>
+                        }
+                    </div>
                 </div>
             }
             @if (editingProductId.HasValue)
@@ -85,13 +93,13 @@
             }
         </div>
 
-        <div class="d-flex gap-2 mt-4">
-            <button class="btn btn-gradient-success" type="submit" disabled="@isSaving">
-                @(isSaving ? "Đang lưu..." : "Lưu")
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <button class="btn btn-gradient-success action-btn" type="submit" disabled="@isSaving">
+                <i class="bi bi-save"></i> @(isSaving ? "Đang lưu..." : "Lưu")
             </button>
             @if (editingProductId.HasValue)
             {
-                <button class="btn btn-outline-secondary" type="button" @onclick="StartCreate">Hủy</button>
+                <button class="btn btn-soft-secondary action-btn" type="button" @onclick="StartCreate">Hủy</button>
             }
         </div>
     </EditForm>
@@ -99,12 +107,20 @@
 
 @if (isLoading)
 {
-    <div class="loading-state">Đang tải dữ liệu...</div>
+    <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
 }
 else
 {
-    <div class="modern-card table-card modern-table-wrapper">
-        <table class="table table-hover align-middle modern-table">
+    <div class="modern-card table-card seller-products-table-card modern-table-wrapper slide-up">
+        <div class="admin-card-header">
+            <div class="stat-icon"><i class="bi bi-list-check"></i></div>
+            <div>
+                <h2>Danh sách sản phẩm</h2>
+                <p>Quản lý ảnh, tồn kho và trạng thái bán.</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+        <table class="table table-hover align-middle modern-table mb-0">
             <thead>
                 <tr>
                     <th>Ảnh</th>
@@ -121,7 +137,7 @@ else
                 @if (products.Count == 0)
                 {
                     <tr>
-                        <td colspan="8"><div class="empty-state">Chưa có dữ liệu.</div></td>
+                        <td colspan="8"><div class="empty-state"><i class="bi bi-inbox"></i> Chưa có dữ liệu.</div></td>
                     </tr>
                 }
                 else
@@ -142,33 +158,38 @@ else
                                 </div>
                             </td>
                             <td>#@product.Id</td>
-                            <td>@product.Name</td>
+                            <td class="seller-product-name">@product.Name</td>
                             <td>@product.CategoryName</td>
-                            <td>@product.Price.ToString("N0") VND</td>
+                            <td class="seller-price-text currency-value">@product.Price.ToString("N0") đ</td>
                             <td>@product.Quantity</td>
                             <td>
-                                <span class="badge @(product.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                <span class="status-badge @(product.IsActive ? "badge-soft-success" : "badge-soft-secondary")">
                                     @(product.IsActive ? "Đang bán" : "Ngừng bán")
                                 </span>
                             </td>
                             <td class="text-end">
-                                <div class="seller-image-upload mb-2">
+                                <div class="seller-action-stack">
+                                <div class="seller-image-upload">
                                     <InputFile class="form-control form-control-sm" OnChange="args => OnProductImageSelected(product.Id, args)" accept=".jpg,.jpeg,.png,.webp" />
-                                    <button class="btn btn-sm btn-soft-primary action-btn mt-2"
+                                    <button class="btn btn-sm btn-soft-primary action-btn"
                                             type="button"
                                             disabled="@(!selectedProductImages.ContainsKey(product.Id) || uploadingProductId == product.Id)"
                                             @onclick="() => UploadProductImageAsync(product.Id)">
                                         <i class="bi bi-cloud-arrow-up"></i> @(uploadingProductId == product.Id ? "Đang xử lý..." : "Đổi ảnh")
                                     </button>
                                 </div>
-                                <button class="btn btn-sm btn-soft-warning action-btn me-1" @onclick="() => StartEdit(product)"><i class="bi bi-pencil-square"></i> Sửa</button>
-                                <button class="btn btn-sm btn-soft-danger action-btn" @onclick="() => DeleteProductAsync(product.Id)"><i class="bi bi-trash"></i> Xóa</button>
+                                <div class="seller-action-row">
+                                    <button class="btn btn-sm btn-soft-warning action-btn" @onclick="() => StartEdit(product)"><i class="bi bi-pencil-square"></i> Sửa</button>
+                                    <button class="btn btn-sm btn-soft-danger action-btn" @onclick="() => DeleteProductAsync(product.Id)"><i class="bi bi-trash"></i> Xóa</button>
+                                </div>
+                                </div>
                             </td>
                         </tr>
                     }
                 }
             </tbody>
         </table>
+        </div>
     </div>
 }
 
@@ -317,7 +338,7 @@ else
         var response = await SellerProductApiService.DeleteAsync(productId);
         if (response?.Success == true)
         {
-            successMessage = "Đã xóa sản phẩm.";
+            successMessage = response.Message;
             await LoadProductsAsync();
             return;
         }

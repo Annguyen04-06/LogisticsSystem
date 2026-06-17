@@ -3,15 +3,19 @@
 @inject AuthService AuthService
 @inject AuthStateService AuthState
 @inject AdminDashboardApiService DashboardApi
+@inject ReportApiService ReportApi
 @inject NavigationManager Navigation
 
 <PageTitle>Bảng điều khiển quản trị</PageTitle>
 
-<div class="page-header">
+<div class="page-header analytics-header admin-compact-header fade-in">
     <div>
         <h1 class="page-title">Bảng điều khiển quản trị</h1>
-        <p class="page-subtitle">Tổng quan doanh thu, đơn hàng và người dùng trong hệ thống.</p>
+        <p class="page-subtitle">Tổng quan nhanh về người dùng, đơn hàng, sản phẩm và doanh thu.</p>
     </div>
+    <a class="btn btn-gradient-primary action-btn" href="/admin-reports">
+        <i class="bi bi-file-earmark-bar-graph"></i> Xem báo cáo
+    </a>
 </div>
 
 @if (isLoading)
@@ -20,50 +24,91 @@
 }
 else if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern">@errorMessage</div>
 }
 else if (dashboard is not null)
 {
     <div class="row g-3 mb-4 fade-in">
-        @StatCard("Tổng người dùng", dashboard.TotalUsers.ToString("N0"), "Khách hàng, người bán, người giao hàng", "bi-people")
-        @StatCard("Tổng sản phẩm", dashboard.TotalProducts.ToString("N0"), "Sản phẩm trong hệ thống", "bi-box-seam")
-        @StatCard("Tổng đơn hàng", dashboard.TotalOrders.ToString("N0"), "Tất cả đơn hàng", "bi-receipt")
+        <div class="col-xl-8">
+            <div class="modern-card admin-control-card h-100">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                    <div>
+                        <div class="analytics-eyebrow">Trung tâm quản trị</div>
+                        <h2 class="admin-section-title">Tình hình hệ thống hôm nay</h2>
+                        <p class="admin-section-subtitle">Theo dõi trạng thái đơn hàng, doanh thu đã giao và các khu vực cần thao tác nhanh.</p>
+                    </div>
+                    <a class="soft-btn" href="/admin-reports">
+                        <i class="bi bi-graph-up-arrow"></i> Phân tích chi tiết
+                    </a>
+                </div>
+
+                <div class="admin-status-chip-row mt-3">
+                    <span class="status-badge status-pending">Chờ xác nhận @dashboard.PendingOrders.ToString("N0")</span>
+                    <span class="status-badge status-confirmed">Đã xác nhận @dashboard.ConfirmedOrders.ToString("N0")</span>
+                    <span class="status-badge status-shipping">Đang giao @dashboard.ShippingOrders.ToString("N0")</span>
+                    <span class="status-badge status-delivered">Đã giao @dashboard.DeliveredOrders.ToString("N0")</span>
+                    <span class="status-badge status-cancelled">Đã hủy @dashboard.CancelledOrders.ToString("N0")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="modern-card top-seller-mini-card h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon"><i class="bi bi-award"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold">Người bán nổi bật</div>
+                        <h2 class="admin-mini-title">@(bestSeller?.SellerName ?? "Chưa có dữ liệu")</h2>
+                    </div>
+                </div>
+
+                @if (bestSeller is not null)
+                {
+                    <div class="money-text admin-mini-value currency-value mt-3">@FormatCurrency(bestSeller.TotalRevenue)</div>
+                    <div class="text-muted small">Đã giao @bestSeller.DeliveredOrders.ToString("N0") đơn / @bestSeller.TotalProductsSold.ToString("N0") sản phẩm đã bán</div>
+                }
+                else
+                {
+                    <div class="empty-state compact-empty mt-3">Chưa có dữ liệu người bán nổi bật.</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4 fade-in">
+        @StatCard("Tổng người dùng", dashboard.TotalUsers.ToString("N0"), "Tài khoản trong hệ thống", "bi-people")
+        @StatCard("Tổng sản phẩm", dashboard.TotalProducts.ToString("N0"), "Sản phẩm đang quản lý", "bi-box-seam")
+        @StatCard("Tổng đơn hàng", dashboard.TotalOrders.ToString("N0"), "Tất cả trạng thái", "bi-receipt")
         @StatCard("Tổng doanh thu", FormatCurrency(dashboard.TotalRevenue), "Chỉ tính đơn đã giao", "bi-cash-stack")
         @StatCard("Phiếu hỗ trợ", dashboard.TotalTickets.ToString("N0"), "Đang mở: " + dashboard.OpenTickets.ToString("N0"), "bi-headset")
         @StatCard("Đơn đã giao", dashboard.DeliveredOrders.ToString("N0"), "Đơn hàng hoàn tất", "bi-check2-circle")
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-lg-3 col-sm-6">
-            <div class="modern-card admin-mini-card p-3">
-                <span class="status-badge status-pending">Chờ xác nhận @dashboard.PendingOrders.ToString("N0")</span>
+    <div class="modern-card admin-quick-section mb-4 slide-up">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+                <h2 class="admin-section-title mb-1">Thao tác nhanh</h2>
+                <div class="text-muted small">Đi đến các khu vực quản trị thường dùng.</div>
             </div>
         </div>
-        <div class="col-lg-3 col-sm-6">
-            <div class="modern-card admin-mini-card p-3">
-                <span class="status-badge status-confirmed">Đã xác nhận @dashboard.ConfirmedOrders.ToString("N0")</span>
-            </div>
-        </div>
-        <div class="col-lg-3 col-sm-6">
-            <div class="modern-card admin-mini-card p-3">
-                <span class="status-badge status-shipping">Đang giao @dashboard.ShippingOrders.ToString("N0")</span>
-            </div>
-        </div>
-        <div class="col-lg-3 col-sm-6">
-            <div class="modern-card admin-mini-card p-3">
-                <span class="status-badge status-cancelled">Đã hủy @dashboard.CancelledOrders.ToString("N0")</span>
-            </div>
+        <div class="row g-3">
+            @QuickCard("Người dùng", "Vai trò và trạng thái tài khoản", "bi-people", "/admin-users")
+            @QuickCard("Danh mục", "Nhóm sản phẩm trong hệ thống", "bi-tags", "/admin-categories")
+            @QuickCard("Sản phẩm", "Xem sản phẩm đang bán", "bi-box-seam", "/products")
+            @QuickCard("Mã giảm giá", "Chương trình khuyến mãi", "bi-ticket-perforated", "/admin-coupons")
+            @QuickCard("Hỗ trợ", "Phiếu hỗ trợ khách hàng", "bi-headset", "/tickets")
+            @QuickCard("Báo cáo", "Doanh thu và xếp hạng", "bi-file-earmark-bar-graph", "/admin-reports")
         </div>
     </div>
 
-    <div class="row g-3">
+    <div class="row g-4">
         <div class="col-xl-6">
-            <div class="modern-card modern-table-wrapper slide-up">
-                <div class="p-4 pb-2 d-flex align-items-center gap-3">
-                    <div class="stat-card-icon"><i class="bi bi-calendar3"></i></div>
+            <div class="modern-card compact-analytics-card modern-table-wrapper slide-up">
+                <div class="admin-card-header">
+                    <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
                     <div>
-                        <h2 class="h5 fw-bold mb-0">Thống kê đơn hàng theo ngày</h2>
-                        <div class="text-muted small">Doanh thu tính theo đơn đã giao.</div>
+                        <h2>Thống kê đơn hàng theo ngày</h2>
+                        <p>Doanh thu tính theo đơn đã giao.</p>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -79,17 +124,17 @@ else if (dashboard is not null)
                             @if (ordersByDate.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="3"><div class="empty-state">Chưa có dữ liệu.</div></td>
+                                    <td colspan="3"><div class="empty-state compact-empty">Chưa có dữ liệu.</div></td>
                                 </tr>
                             }
                             else
                             {
-                                @foreach (var item in ordersByDate)
+                                @foreach (var item in ordersByDate.Take(8))
                                 {
                                     <tr>
                                         <td>@item.Date.ToString("dd/MM/yyyy")</td>
                                         <td>@item.TotalOrders.ToString("N0")</td>
-                                        <td class="fw-bold">@FormatCurrency(item.Revenue)</td>
+                                        <td class="fw-bold currency-value">@FormatCurrency(item.Revenue)</td>
                                     </tr>
                                 }
                             }
@@ -100,12 +145,12 @@ else if (dashboard is not null)
         </div>
 
         <div class="col-xl-6">
-            <div class="modern-card modern-table-wrapper slide-up">
-                <div class="p-4 pb-2 d-flex align-items-center gap-3">
-                    <div class="stat-card-icon"><i class="bi bi-bar-chart-line"></i></div>
+            <div class="modern-card compact-analytics-card modern-table-wrapper slide-up">
+                <div class="admin-card-header">
+                    <div class="stat-icon"><i class="bi bi-bar-chart-line"></i></div>
                     <div>
-                        <h2 class="h5 fw-bold mb-0">Thống kê đơn hàng theo tháng</h2>
-                        <div class="text-muted small">Theo dõi xu hướng xử lý đơn hàng.</div>
+                        <h2>Thống kê đơn hàng theo tháng</h2>
+                        <p>Theo dõi xu hướng xử lý đơn hàng.</p>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -122,18 +167,18 @@ else if (dashboard is not null)
                             @if (ordersByMonth.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="4"><div class="empty-state">Chưa có dữ liệu.</div></td>
+                                    <td colspan="4"><div class="empty-state compact-empty">Chưa có dữ liệu.</div></td>
                                 </tr>
                             }
                             else
                             {
-                                @foreach (var item in ordersByMonth)
+                                @foreach (var item in ordersByMonth.Take(8))
                                 {
                                     <tr>
                                         <td>@item.Year</td>
                                         <td>@item.Month</td>
                                         <td>@item.TotalOrders.ToString("N0")</td>
-                                        <td class="fw-bold">@FormatCurrency(item.Revenue)</td>
+                                        <td class="fw-bold currency-value">@FormatCurrency(item.Revenue)</td>
                                     </tr>
                                 }
                             }
@@ -149,6 +194,7 @@ else if (dashboard is not null)
     private AdminDashboardDto? dashboard;
     private List<OrderStatisticsByDateDto> ordersByDate = [];
     private List<OrderStatisticsByMonthDto> ordersByMonth = [];
+    private TopSellerReportDto? bestSeller;
     private bool isLoading = true;
     private string? errorMessage;
 
@@ -178,6 +224,7 @@ else if (dashboard is not null)
             var dashboardResponse = await DashboardApi.GetDashboardAsync();
             var dateResponse = await DashboardApi.GetOrdersByDateAsync();
             var monthResponse = await DashboardApi.GetOrdersByMonthAsync();
+            var topSellersResponse = await ReportApi.GetTopSellersAsync();
 
             if (dashboardResponse?.Success != true || dashboardResponse.Data is null)
             {
@@ -188,6 +235,7 @@ else if (dashboard is not null)
             dashboard = dashboardResponse.Data;
             ordersByDate = dateResponse?.Data ?? [];
             ordersByMonth = monthResponse?.Data ?? [];
+            bestSeller = topSellersResponse?.Data?.FirstOrDefault();
         }
         catch
         {
@@ -204,12 +252,23 @@ else if (dashboard is not null)
         return $"{value:N0} đ";
     }
 
-    private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-sm-6 col-xl-4 col-xxl-2">
+    private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-12 col-md-6 col-xl-3">
         <div class="stat-card hover-lift h-100">
-            <div class="stat-card-icon"><i class="bi @icon"></i></div>
+            <div class="stat-icon"><i class="bi @icon"></i></div>
             <div class="stat-card-title">@label</div>
-            <div class="stat-card-value">@value</div>
+            <div class="stat-card-value currency-value">@value</div>
             <div class="stat-card-description">@note</div>
         </div>
+    </div>;
+
+    private static RenderFragment QuickCard(string label, string note, string icon, string href) => @<div class="col-sm-6 col-xl-4 col-xxl-2">
+        <a class="quick-action-card admin-quick-card hover-lift h-100" href="@href">
+            <div class="stat-icon"><i class="bi @icon"></i></div>
+            <div>
+                <div class="fw-bold">@label</div>
+                <div class="text-muted small">@note</div>
+            </div>
+            <i class="bi bi-arrow-right-short quick-card-arrow"></i>
+        </a>
     </div>;
 }

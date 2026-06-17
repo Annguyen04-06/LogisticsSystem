@@ -3,209 +3,279 @@
 @inject AuthService AuthService
 @inject AuthStateService AuthState
 @inject TicketApiService TicketApi
+@inject OrderApiService OrderApi
 @inject NavigationManager Navigation
 
 <PageTitle>Hỗ trợ khách hàng</PageTitle>
 
-<div class="page-header">
-    <div>
-        <h1 class="page-title">@PageTitleText</h1>
-        <p class="page-subtitle">@PageSubtitleText</p>
-    </div>
-    <button class="btn btn-soft-primary" type="button" @onclick="ReloadTicketsAsync">
-        <i class="bi bi-arrow-repeat"></i> Tải lại
-    </button>
-</div>
-
-@if (!string.IsNullOrWhiteSpace(successMessage))
-{
-    <div class="alert alert-success">@successMessage</div>
-}
-
-@if (!string.IsNullOrWhiteSpace(errorMessage))
-{
-    <div class="alert alert-danger">@errorMessage</div>
-}
-
-<div class="row g-3">
-    @if (IsCustomer)
-    {
-        <div class="col-xl-4">
-            <div class="modern-card form-modern p-4">
-                <h2 class="h5 fw-bold mb-3">Gửi phiếu hỗ trợ</h2>
-                <EditForm Model="@createForm" OnValidSubmit="CreateTicketAsync">
-                    <DataAnnotationsValidator />
-                    <ValidationSummary />
-
-                    <label class="form-label">Mã người bán</label>
-                    <InputNumber class="form-control" @bind-Value="createForm.SellerId" />
-                    <div class="form-text">Không bắt buộc. Bỏ trống nếu cần hỗ trợ chung.</div>
-
-                    <label class="form-label mt-3">Tiêu đề</label>
-                    <InputText class="form-control" @bind-Value="createForm.Title" placeholder="Nhập tiêu đề" />
-
-                    <label class="form-label mt-3">Nội dung</label>
-                    <InputTextArea class="form-control" rows="5" @bind-Value="createForm.Content" placeholder="Nhập nội dung cần hỗ trợ" />
-
-                    <button class="btn btn-gradient-success mt-3" type="submit" disabled="@isSaving">
-                        @(isSaving ? "Đang gửi..." : "Gửi phiếu hỗ trợ")
-                    </button>
-                </EditForm>
-            </div>
+<div class="page-shell fade-in">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">@PageTitleText</h1>
+            <p class="page-subtitle">@PageSubtitleText</p>
         </div>
+        <button class="btn btn-soft-primary action-btn" type="button" @onclick="ReloadTicketsAsync">
+            <i class="bi bi-arrow-repeat"></i> Tải lại
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(successMessage))
+    {
+        <div class="alert alert-success alert-modern fade-in">@successMessage</div>
     }
 
-    <div class="@(IsCustomer ? "col-xl-8" : "col-12")">
-        <div class="modern-card table-card modern-table-wrapper">
-            @if (isLoading)
-            {
-                <div class="loading-state">Đang tải dữ liệu...</div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle modern-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Mã phiếu</th>
-                                <th>Tiêu đề</th>
-                                @if (!IsCustomer)
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
+    }
+
+    <div class="row g-3">
+        @if (IsCustomer)
+        {
+            <div class="col-xl-4">
+                <div class="modern-card form-modern ticket-create-card p-4 slide-up hover-lift">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="stat-icon"><i class="bi bi-headset"></i></div>
+                        <div>
+                            <h2 class="h5 fw-bold mb-0">Gửi phiếu hỗ trợ</h2>
+                            <div class="text-muted small">Chọn đúng ngữ cảnh để đội hỗ trợ xử lý nhanh hơn.</div>
+                        </div>
+                    </div>
+
+                    <EditForm Model="@createForm" OnValidSubmit="CreateTicketAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <label class="form-label">Loại hỗ trợ</label>
+                        <select class="form-select" value="@supportType" @onchange="OnSupportTypeChanged">
+                            <option value="General">Hỗ trợ chung</option>
+                            <option value="Order">Hỗ trợ theo đơn hàng</option>
+                            <option value="Seller">Hỗ trợ người bán/sản phẩm</option>
+                        </select>
+
+                        @if (supportType == "Order")
+                        {
+                            <label class="form-label mt-3">Chọn đơn hàng</label>
+                            <select class="form-select" value="@selectedOrderId" @onchange="OnOrderChanged">
+                                <option value="">Chọn đơn hàng</option>
+                                @foreach (var order in myOrders)
                                 {
-                                    <th>Khách hàng</th>
+                                    <option value="@order.Id">
+                                        Đơn #@order.Id - @FormatMoney(order.FinalAmount) - @order.CreatedAt.ToString("dd/MM/yyyy")
+                                    </option>
                                 }
-                                <th>Người bán</th>
-                                <th>Trạng thái</th>
-                                <th>Ngày tạo</th>
-                                <th class="text-end">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (tickets.Count == 0)
+                            </select>
+                            @if (myOrders.Count == 0)
                             {
-                                <tr>
-                                    <td colspan="@(IsCustomer ? 6 : 7)"><div class="empty-state">Chưa có dữ liệu.</div></td>
-                                </tr>
+                                <div class="form-text text-warning">Bạn chưa có đơn hàng để gửi hỗ trợ theo đơn hàng.</div>
                             }
-                            else
+                        }
+
+                        @if (supportType == "Seller")
+                        {
+                            <label class="form-label mt-3">Chọn người bán</label>
+                            <select class="form-select" value="@selectedSellerId" @onchange="OnSellerChanged">
+                                <option value="">Chọn người bán</option>
+                                @foreach (var seller in purchasedSellers)
+                                {
+                                    <option value="@seller.SellerId">@seller.SellerName - từ đơn #@seller.OrderId</option>
+                                }
+                            </select>
+                            @if (purchasedSellers.Count == 0)
                             {
-                                @foreach (var ticket in tickets)
+                                <div class="form-text text-warning">Bạn chưa có đơn hàng để gửi hỗ trợ theo người bán.</div>
+                            }
+                        }
+
+                        <label class="form-label mt-3">Tiêu đề</label>
+                        <InputText class="form-control" @bind-Value="createForm.Title" placeholder="Nhập tiêu đề" />
+
+                        <label class="form-label mt-3">Nội dung</label>
+                        <InputTextArea class="form-control" rows="5" @bind-Value="createForm.Content" placeholder="Nhập nội dung cần hỗ trợ" />
+
+                        <button class="btn btn-gradient-success action-btn w-100 mt-3" type="submit" disabled="@isSaving">
+                            <i class="bi bi-send"></i> @(isSaving ? "Đang gửi..." : "Gửi phiếu hỗ trợ")
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        }
+
+        <div class="@(IsCustomer ? "col-xl-8" : "col-12")">
+            <div class="modern-card table-card ticket-table-card modern-table-wrapper slide-up">
+                <div class="admin-card-header">
+                    <div class="stat-icon"><i class="bi bi-chat-dots"></i></div>
+                    <div>
+                        <h2>Danh sách phiếu hỗ trợ</h2>
+                        <p>Theo dõi trạng thái và mở phần phản hồi khi cần xử lý.</p>
+                    </div>
+                </div>
+                @if (isLoading)
+                {
+                    <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle modern-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã phiếu</th>
+                                    <th>Tiêu đề</th>
+                                    @if (!IsCustomer)
+                                    {
+                                        <th>Khách hàng</th>
+                                    }
+                                    <th>Ngữ cảnh</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày tạo</th>
+                                    <th class="text-end">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (tickets.Count == 0)
                                 {
                                     <tr>
-                                        <td>#@ticket.Id</td>
-                                        <td class="fw-semibold">@ticket.Title</td>
-                                        @if (!IsCustomer)
-                                        {
-                                            <td>@ticket.CustomerName</td>
-                                        }
-                                        <td>@(ticket.SellerName ?? "-")</td>
-                                        <td>
-                                            <span class="badge @GetStatusBadgeClass(ticket.Status)">
-                                                @GetStatusText(ticket.Status)
-                                            </span>
-                                        </td>
-                                        <td>@ticket.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-soft-primary action-btn me-1" type="button" @onclick="() => SelectTicketAsync(ticket.Id)"><i class="bi bi-eye"></i> Xem chi tiết</button>
-                                            @if (ticket.Status != "Closed")
-                                            {
-                                                <button class="btn btn-sm btn-soft-success action-btn" type="button" @onclick="() => CloseTicketAsync(ticket.Id)"><i class="bi bi-check-circle"></i> Đóng phiếu</button>
-                                            }
+                                        <td colspan="@(IsCustomer ? 6 : 7)">
+                                            <div class="empty-state"><i class="bi bi-inbox"></i> Chưa có dữ liệu.</div>
                                         </td>
                                     </tr>
                                 }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
-</div>
-
-@if (selectedTicket is not null)
-{
-    <div class="modern-card form-section p-4 mt-3">
-        <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
-            <div>
-                <h2 class="h5 fw-bold mb-1">Chi tiết phiếu #@selectedTicket.Id</h2>
-                <div class="text-muted">@selectedTicket.Title</div>
-            </div>
-            <span class="badge align-self-start @GetStatusBadgeClass(selectedTicket.Status)">
-                @GetStatusText(selectedTicket.Status)
-            </span>
-        </div>
-
-        <div class="border rounded p-3 bg-light mb-3">
-            <div class="fw-semibold mb-1">Nội dung</div>
-            <div>@selectedTicket.Content</div>
-        </div>
-
-        @if (CanUpdateStatus && selectedTicket.Status != "Closed")
-        {
-            <div class="row g-2 align-items-end mb-3">
-                <div class="col-sm-5 col-lg-3">
-                    <label class="form-label">Cập nhật trạng thái</label>
-                    <select class="form-select" @bind="selectedStatus">
-                        <option value="Open">Đang mở</option>
-                        <option value="InProgress">Đang xử lý</option>
-                        <option value="Closed">Đã đóng</option>
-                    </select>
-                </div>
-                <div class="col-sm-auto">
-                    <button class="btn btn-soft-warning action-btn" type="button" @onclick="UpdateStatusAsync"><i class="bi bi-pencil-square"></i> Cập nhật</button>
-                </div>
-            </div>
-        }
-
-        <h3 class="h6 fw-bold">Phản hồi</h3>
-        @if (selectedTicket.Replies.Count == 0)
-        {
-            <div class="text-muted mb-3">Chưa có phản hồi.</div>
-        }
-        else
-        {
-            <div class="vstack gap-2 mb-3">
-                @foreach (var reply in selectedTicket.Replies)
-                {
-                    <div class="border rounded p-3">
-                        <div class="d-flex justify-content-between gap-2">
-                            <strong>@reply.UserName</strong>
-                            <span class="text-muted small">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                        </div>
-                        <div class="mt-2">@reply.Message</div>
+                                else
+                                {
+                                    @foreach (var ticket in tickets)
+                                    {
+                                        <tr>
+                                            <td>#@ticket.Id</td>
+                                            <td class="fw-semibold">@ticket.Title</td>
+                                            @if (!IsCustomer)
+                                            {
+                                                <td>@ticket.CustomerName</td>
+                                            }
+                                            <td>@GetTicketContext(ticket)</td>
+                                            <td>
+                                                <span class="status-badge @GetStatusBadgeClass(ticket.Status)">
+                                                    @GetStatusText(ticket.Status)
+                                                </span>
+                                            </td>
+                                            <td>@ticket.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td class="text-end">
+                                                <div class="admin-row-actions">
+                                                    <button class="btn btn-sm btn-soft-primary action-btn" type="button" @onclick="() => SelectTicketAsync(ticket.Id)">
+                                                        <i class="bi bi-reply"></i> Phản hồi
+                                                    </button>
+                                                    @if (ticket.Status != "Closed")
+                                                    {
+                                                        <button class="btn btn-sm btn-soft-success action-btn" type="button" @onclick="() => CloseTicketAsync(ticket.Id)">
+                                                            <i class="bi bi-check-circle"></i> Đóng phiếu
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 }
             </div>
-        }
-
-        @if (selectedTicket.Status != "Closed")
-        {
-            <EditForm Model="@replyForm" OnValidSubmit="ReplyTicketAsync">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-
-                <label class="form-label">Nội dung phản hồi</label>
-                <InputTextArea class="form-control" rows="4" @bind-Value="replyForm.Message" />
-                <div class="d-flex gap-2 mt-3">
-                    <button class="btn btn-gradient-primary" type="submit" disabled="@isReplying">
-                        @(isReplying ? "Đang gửi..." : "Gửi phản hồi")
-                    </button>
-                    <button class="btn btn-outline-secondary" type="button" @onclick="ClearSelectedTicket">Đóng chi tiết</button>
-                </div>
-            </EditForm>
-        }
-        else
-        {
-            <button class="btn btn-outline-secondary" type="button" @onclick="ClearSelectedTicket">Đóng chi tiết</button>
-        }
+        </div>
     </div>
-}
+
+    @if (selectedTicket is not null)
+    {
+        <div class="modern-card form-section ticket-detail-card p-4 mt-3 slide-up">
+            <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+                <div>
+                    <h2 class="h5 fw-bold mb-1">Chi tiết phiếu #@selectedTicket.Id</h2>
+                    <div class="text-muted">@selectedTicket.Title</div>
+                    <div class="small text-muted mt-1">@GetTicketContext(selectedTicket)</div>
+                </div>
+                <span class="status-badge align-self-start @GetStatusBadgeClass(selectedTicket.Status)">
+                    @GetStatusText(selectedTicket.Status)
+                </span>
+            </div>
+
+            <div class="ticket-content-card mb-3">
+                <div class="fw-semibold mb-1">Nội dung</div>
+                <div>@selectedTicket.Content</div>
+            </div>
+
+            @if (CanUpdateStatus && selectedTicket.Status != "Closed")
+            {
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-sm-5 col-lg-3">
+                        <label class="form-label">Cập nhật trạng thái</label>
+                        <select class="form-select" @bind="selectedStatus">
+                            <option value="Open">Đang mở</option>
+                            <option value="InProgress">Đang xử lý</option>
+                            <option value="Closed">Đã đóng</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-auto">
+                        <button class="btn btn-soft-warning action-btn" type="button" @onclick="UpdateStatusAsync">
+                            <i class="bi bi-pencil-square"></i> Cập nhật trạng thái
+                        </button>
+                    </div>
+                </div>
+            }
+
+            <h3 class="h6 fw-bold">Phản hồi</h3>
+            @if (selectedTicket.Replies.Count == 0)
+            {
+                <div class="empty-state compact-empty mb-3"><i class="bi bi-chat-left-text"></i> Chưa có phản hồi.</div>
+            }
+            else
+            {
+                <div class="vstack gap-2 mb-3">
+                    @foreach (var reply in selectedTicket.Replies)
+                    {
+                        <div class="ticket-reply-card">
+                            <div class="d-flex justify-content-between gap-2">
+                                <strong>@reply.UserName</strong>
+                                <span class="text-muted small">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            <div class="mt-2">@reply.Message</div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (selectedTicket.Status != "Closed")
+            {
+                <EditForm Model="@replyForm" OnValidSubmit="ReplyTicketAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <label class="form-label">Nội dung phản hồi</label>
+                    <InputTextArea class="form-control" rows="4" @bind-Value="replyForm.Message" />
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-gradient-primary action-btn" type="submit" disabled="@isReplying">
+                            <i class="bi bi-send"></i> @(isReplying ? "Đang gửi..." : "Gửi phản hồi")
+                        </button>
+                        <button class="btn btn-soft-secondary action-btn" type="button" @onclick="ClearSelectedTicket">Đóng chi tiết</button>
+                    </div>
+                </EditForm>
+            }
+            else
+            {
+                <button class="btn btn-soft-secondary action-btn" type="button" @onclick="ClearSelectedTicket">Đóng chi tiết</button>
+            }
+        </div>
+    }
+</div>
 
 @code {
     private List<SupportTicketDto> tickets = [];
     private SupportTicketDto? selectedTicket;
     private CreateTicketDto createForm = new();
     private ReplyTicketDto replyForm = new();
+    private List<OrderDto> myOrders = [];
+    private List<PurchasedSellerOption> purchasedSellers = [];
+    private string supportType = "General";
+    private int? selectedOrderId;
+    private int? selectedSellerId;
     private string selectedStatus = "Open";
     private bool isLoading = true;
     private bool isSaving;
@@ -238,8 +308,40 @@
             return;
         }
 
+        if (IsCustomer)
+        {
+            await LoadCustomerOrdersAsync();
+        }
+
         await LoadTicketsAsync();
         StateHasChanged();
+    }
+
+    private async Task LoadCustomerOrdersAsync()
+    {
+        try
+        {
+            var response = await OrderApi.GetMyOrdersAsync();
+            if (response?.Success == true)
+            {
+                myOrders = response.Data ?? [];
+                purchasedSellers = myOrders
+                    .Where(order => order.SellerId > 0 && !string.IsNullOrWhiteSpace(order.SellerName))
+                    .GroupBy(order => order.SellerId)
+                    .Select(group =>
+                    {
+                        var order = group.OrderByDescending(item => item.CreatedAt).First();
+                        return new PurchasedSellerOption(order.SellerId, order.SellerName, order.Id);
+                    })
+                    .OrderBy(option => option.SellerName)
+                    .ToList();
+            }
+        }
+        catch
+        {
+            myOrders = [];
+            purchasedSellers = [];
+        }
     }
 
     private async Task LoadTicketsAsync(bool clearMessages = true)
@@ -288,6 +390,12 @@
     private async Task CreateTicketAsync()
     {
         ClearMessages();
+
+        if (!PrepareTicketContext())
+        {
+            return;
+        }
+
         isSaving = true;
 
         try
@@ -297,7 +405,7 @@
             if (response?.Success == true)
             {
                 successMessage = "Gửi phiếu hỗ trợ thành công.";
-                createForm = new CreateTicketDto();
+                ResetCreateForm();
                 await LoadTicketsAsync(false);
             }
             else
@@ -313,6 +421,62 @@
         {
             isSaving = false;
         }
+    }
+
+    private bool PrepareTicketContext()
+    {
+        createForm.SellerId = null;
+        createForm.OrderId = null;
+
+        if (supportType == "Order")
+        {
+            if (!selectedOrderId.HasValue)
+            {
+                errorMessage = "Vui lòng chọn đơn hàng cần hỗ trợ.";
+                return false;
+            }
+
+            createForm.OrderId = selectedOrderId;
+        }
+        else if (supportType == "Seller")
+        {
+            if (!selectedSellerId.HasValue)
+            {
+                errorMessage = "Vui lòng chọn người bán cần hỗ trợ.";
+                return false;
+            }
+
+            createForm.SellerId = selectedSellerId;
+        }
+
+        return true;
+    }
+
+    private void ResetCreateForm()
+    {
+        createForm = new CreateTicketDto();
+        supportType = "General";
+        selectedOrderId = null;
+        selectedSellerId = null;
+    }
+
+    private void OnSupportTypeChanged(ChangeEventArgs args)
+    {
+        supportType = args.Value?.ToString() ?? "General";
+        selectedOrderId = null;
+        selectedSellerId = null;
+        createForm.OrderId = null;
+        createForm.SellerId = null;
+    }
+
+    private void OnOrderChanged(ChangeEventArgs args)
+    {
+        selectedOrderId = int.TryParse(args.Value?.ToString(), out var orderId) ? orderId : null;
+    }
+
+    private void OnSellerChanged(ChangeEventArgs args)
+    {
+        selectedSellerId = int.TryParse(args.Value?.ToString(), out var sellerId) ? sellerId : null;
     }
 
     private async Task SelectTicketAsync(int id)
@@ -466,6 +630,23 @@
         errorMessage = null;
     }
 
+    private static string GetTicketContext(SupportTicketDto ticket)
+    {
+        if (ticket.OrderId.HasValue && !string.IsNullOrWhiteSpace(ticket.SellerName))
+        {
+            return $"Đơn #{ticket.OrderId} - {ticket.SellerName}";
+        }
+
+        if (ticket.OrderId.HasValue)
+        {
+            return $"Đơn #{ticket.OrderId}";
+        }
+
+        return string.IsNullOrWhiteSpace(ticket.SellerName)
+            ? "Hỗ trợ chung"
+            : ticket.SellerName;
+    }
+
     private static string GetStatusText(string status)
     {
         return status switch
@@ -481,10 +662,17 @@
     {
         return status switch
         {
-            "Open" => "text-bg-warning",
-            "InProgress" => "text-bg-info",
-            "Closed" => "text-bg-success",
-            _ => "text-bg-secondary"
+            "Open" => "badge-soft-warning",
+            "InProgress" => "badge-soft-info",
+            "Closed" => "badge-soft-success",
+            _ => "badge-soft-secondary"
         };
     }
+
+    private static string FormatMoney(decimal amount)
+    {
+        return $"{amount:N0} đ";
+    }
+
+    private sealed record PurchasedSellerOption(int SellerId, string SellerName, int OrderId);
 }

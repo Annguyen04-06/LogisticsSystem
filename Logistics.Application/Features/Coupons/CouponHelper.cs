@@ -68,7 +68,7 @@ internal static class CouponHelper
     {
         if (!coupon.IsActive)
         {
-            return "Coupon is not active.";
+            return "Mã giảm giá đã ngừng hoạt động.";
         }
 
         if (currentTime < coupon.StartDate || currentTime > coupon.EndDate)

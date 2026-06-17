@@ -1,10 +1,15 @@
+using System.Globalization;
 using Logistics.Web.Models;
 
 namespace Logistics.Web.Services;
 
 public class ProductApiService(ApiClientService apiClient)
 {
-    public async Task<ApiResponse<List<ProductDto>>?> GetProductsAsync(string? search, int? categoryId)
+    public async Task<ApiResponse<List<ProductDto>>?> GetProductsAsync(
+        string? search,
+        int? categoryId,
+        decimal? minPrice = null,
+        decimal? maxPrice = null)
     {
         var query = new List<string>();
 
@@ -16,6 +21,16 @@ public class ProductApiService(ApiClientService apiClient)
         if (categoryId.HasValue)
         {
             query.Add($"categoryId={categoryId.Value}");
+        }
+
+        if (minPrice.HasValue)
+        {
+            query.Add($"minPrice={minPrice.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (maxPrice.HasValue)
+        {
+            query.Add($"maxPrice={maxPrice.Value.ToString(CultureInfo.InvariantCulture)}");
         }
 
         var url = query.Count == 0 ? "api/products" : $"api/products?{string.Join("&", query)}";

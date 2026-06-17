@@ -25,6 +25,7 @@ internal static class TicketDtoBuilder
                 CustomerName = customer.FullName,
                 SellerId = ticket.SellerId,
                 SellerName = seller == null ? null : seller.FullName,
+                OrderId = ticket.OrderId,
                 Title = ticket.Title,
                 Content = ticket.Content,
                 Status = ticket.Status,

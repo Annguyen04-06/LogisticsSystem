@@ -82,6 +82,24 @@ public class AssignShipperDto
     public int ShipperId { get; set; }
 }
 
+public class AvailableShipperDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("fullName")]
+    public string FullName { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("phoneNumber")]
+    public string PhoneNumber { get; set; } = string.Empty;
+
+    [JsonPropertyName("avatarUrl")]
+    public string? AvatarUrl { get; set; }
+}
+
 public class UpdateDeliveryStatusDto
 {
     [JsonPropertyName("status")]

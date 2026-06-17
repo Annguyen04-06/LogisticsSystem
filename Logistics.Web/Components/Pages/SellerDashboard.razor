@@ -7,63 +7,65 @@
 
 <PageTitle>Bảng điều khiển người bán</PageTitle>
 
-<div class="page-header">
+<div class="page-header fade-in">
     <div>
         <h1 class="page-title">Bảng điều khiển người bán</h1>
-        <p class="page-subtitle">Thống kê sản phẩm, đơn hàng, doanh thu và độ uy tín.</p>
+        <p class="page-subtitle">Theo dõi sản phẩm, đơn hàng, doanh thu và độ uy tín của gian hàng.</p>
     </div>
+    <a class="btn btn-gradient-primary action-btn" href="/seller-products">
+        <i class="bi bi-plus-circle"></i> Quản lý sản phẩm
+    </a>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-modern fade-in">@errorMessage</div>
 }
 
 @if (isLoading)
 {
-    <div class="loading-state">Đang tải dữ liệu...</div>
+    <div class="loading-state"><i class="bi bi-arrow-repeat"></i> Đang tải dữ liệu...</div>
 }
 else if (dashboard != null)
 {
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-label">Tổng sản phẩm</div>
-                <div class="stat-value">@dashboard.TotalProducts</div>
-                <div class="text-muted small">@dashboard.SellerName</div>
+    <div class="modern-card seller-hero-card mb-4 fade-in">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="analytics-eyebrow">Trung tâm người bán</div>
+                <h2 class="admin-section-title">@dashboard.SellerName</h2>
+                <p class="admin-section-subtitle">Nắm nhanh tình trạng vận hành, đơn cần xử lý và hiệu quả bán hàng.</p>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-label">Tổng đơn hàng</div>
-                <div class="stat-value">@dashboard.TotalOrders</div>
-                <div class="text-muted small">Tất cả trạng thái</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-label">Doanh thu</div>
-                <div class="stat-value">@dashboard.TotalRevenue.ToString("N0")</div>
-                <div class="text-muted small">Đơn đã giao</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-label">Độ uy tín</div>
-                <div class="stat-value">@dashboard.TrustPercent.ToString("N1")%</div>
-                <div class="text-muted small">@dashboard.TotalLikes thích / @dashboard.TotalDislikes không thích</div>
+            <div class="seller-status-row">
+                <span class="status-badge status-pending">Chờ xác nhận @dashboard.PendingOrders.ToString("N0")</span>
+                <span class="status-badge status-confirmed">Đã xác nhận @dashboard.ConfirmedOrders.ToString("N0")</span>
+                <span class="status-badge status-shipping">Đang giao @dashboard.ShippingOrders.ToString("N0")</span>
+                <span class="status-badge status-delivered">Đã giao @dashboard.DeliveredOrders.ToString("N0")</span>
+                <span class="status-badge status-cancelled">Đã hủy @dashboard.CancelledOrders.ToString("N0")</span>
             </div>
         </div>
     </div>
 
-    <div class="modern-card form-section p-4">
-        <h2 class="h5 fw-bold mb-3">Trạng thái đơn hàng</h2>
-        <div class="d-flex flex-wrap gap-2">
-            <span class="status-badge status-pending">Chờ xác nhận @dashboard.PendingOrders</span>
-            <span class="status-badge status-confirmed">Đã xác nhận @dashboard.ConfirmedOrders</span>
-            <span class="status-badge status-shipping">Đang giao @dashboard.ShippingOrders</span>
-            <span class="status-badge status-delivered">Đã giao @dashboard.DeliveredOrders</span>
-            <span class="status-badge status-cancelled">Đã hủy @dashboard.CancelledOrders</span>
+    <div class="row g-3 mb-4 fade-in">
+        @StatCard("Tổng sản phẩm", dashboard.TotalProducts.ToString("N0"), "Sản phẩm đang quản lý", "bi-box-seam")
+        @StatCard("Tổng đơn hàng", dashboard.TotalOrders.ToString("N0"), "Tất cả trạng thái", "bi-receipt")
+        @StatCard("Doanh thu", FormatCurrency(dashboard.TotalRevenue), "Đơn đã giao", "bi-cash-stack")
+        @StatCard("Độ uy tín", $"{dashboard.TrustPercent:N1}%", $"{dashboard.TotalLikes:N0} thích / {dashboard.TotalDislikes:N0} không thích", "bi-hand-thumbs-up")
+        @StatCard("Đơn chờ xác nhận", dashboard.PendingOrders.ToString("N0"), "Cần xử lý", "bi-hourglass-split")
+        @StatCard("Đơn đã giao", dashboard.DeliveredOrders.ToString("N0"), "Hoàn tất", "bi-check2-circle")
+    </div>
+
+    <div class="modern-card admin-quick-section seller-dashboard-actions slide-up">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+                <h2 class="admin-section-title mb-1">Thao tác nhanh</h2>
+                <div class="text-muted small">Đi đến các khu vực người bán thường dùng.</div>
+            </div>
+        </div>
+        <div class="row g-3">
+            @QuickCard("Quản lý sản phẩm", "Thêm, sửa và cập nhật ảnh", "bi-box-seam", "/seller-products")
+            @QuickCard("Đơn hàng người bán", "Xác nhận và gán giao hàng", "bi-receipt", "/seller-orders")
+            @QuickCard("Báo cáo", "Doanh thu và hiệu quả bán", "bi-file-earmark-bar-graph", "/admin-reports")
+            @QuickCard("Hồ sơ cá nhân", "Thông tin tài khoản", "bi-person-circle", "/profile")
         </div>
     </div>
 }
@@ -119,4 +121,29 @@ else if (dashboard != null)
             isLoading = false;
         }
     }
+
+    private static string FormatCurrency(decimal value)
+    {
+        return $"{value:N0} đ";
+    }
+
+    private static RenderFragment StatCard(string label, string value, string note, string icon) => @<div class="col-12 col-md-6 col-xl-3">
+        <div class="stat-card hover-lift h-100">
+            <div class="stat-icon"><i class="bi @icon"></i></div>
+            <div class="stat-card-title">@label</div>
+            <div class="stat-card-value currency-value">@value</div>
+            <div class="stat-card-description">@note</div>
+        </div>
+    </div>;
+
+    private static RenderFragment QuickCard(string label, string note, string icon, string href) => @<div class="col-sm-6 col-xl-3">
+        <a class="quick-action-card admin-quick-card hover-lift h-100" href="@href">
+            <div class="stat-icon"><i class="bi @icon"></i></div>
+            <div>
+                <div class="fw-bold">@label</div>
+                <div class="text-muted small">@note</div>
+            </div>
+            <i class="bi bi-arrow-right-short quick-card-arrow"></i>
+        </a>
+    </div>;
 }
