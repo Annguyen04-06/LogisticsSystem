@@ -49,7 +49,12 @@ public class GetAdminDashboardQueryHandler(IApplicationDbContext context)
                 order => order.Status == OrderStatus.Cancelled,
                 cancellationToken),
             TotalRevenue = await context.Orders
-                .Where(order => order.Status == OrderStatus.Delivered)
+                .Where(order =>
+                    order.Status == OrderStatus.Delivered &&
+                    context.Payments.Any(payment =>
+                        payment.OrderId == order.Id && payment.Status == PaymentStatus.Paid) &&
+                    !context.Payments.Any(payment =>
+                        payment.OrderId == order.Id && payment.Status == PaymentStatus.Refunded))
                 .SumAsync(order => (decimal?)order.FinalAmount, cancellationToken) ?? 0,
             TotalTickets = await context.SupportTickets.CountAsync(cancellationToken),
             OpenTickets = await context.SupportTickets.CountAsync(

@@ -11,5 +11,6 @@ public class Order : BaseEntity
     public decimal TotalAmount { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal FinalAmount { get; set; }
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.COD;
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
 }

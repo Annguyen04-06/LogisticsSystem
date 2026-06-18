@@ -1,5 +1,6 @@
 using Logistics.Application.DTOs.Orders;
 using Logistics.Application.Interfaces;
+using Logistics.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Logistics.Application.Features.Orders;
@@ -27,6 +28,7 @@ internal static class OrderDtoBuilder
                 TotalAmount = order.TotalAmount,
                 DiscountAmount = order.DiscountAmount,
                 FinalAmount = order.FinalAmount,
+                PaymentMethod = order.PaymentMethod,
                 Status = order.Status,
                 CreatedAt = order.CreatedAt
             }).ToListAsync(cancellationToken);
@@ -37,6 +39,22 @@ internal static class OrderDtoBuilder
         }
 
         var orderIds = orders.Select(order => order.Id).ToList();
+        var payments = await context.Payments
+            .Where(payment => orderIds.Contains(payment.OrderId))
+            .OrderByDescending(payment => payment.CreatedAt)
+            .ThenByDescending(payment => payment.Id)
+            .Select(payment => new
+            {
+                payment.OrderId,
+                payment.Status,
+                payment.PaidAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var paymentsByOrder = payments
+            .GroupBy(payment => payment.OrderId)
+            .ToDictionary(group => group.Key, group => group.First());
+
         var details = await (
             from detail in context.OrderDetails
             join product in context.Products on detail.ProductId equals product.Id
@@ -60,6 +78,18 @@ internal static class OrderDtoBuilder
 
         foreach (var order in orders)
         {
+            if (paymentsByOrder.TryGetValue(order.Id, out var payment))
+            {
+                order.PaymentStatus = payment.Status;
+                order.IsPaid = payment.Status == PaymentStatus.Paid;
+                order.PaidAt = payment.PaidAt;
+            }
+            else
+            {
+                order.PaymentStatus = PaymentStatus.Pending;
+                order.IsPaid = false;
+            }
+
             if (detailsByOrder.TryGetValue(order.Id, out var orderDetails))
             {
                 order.Details = orderDetails;

@@ -15,13 +15,15 @@ public class DepositWalletCommandHandler(IApplicationDbContext context)
     {
         if (request.CurrentUserRole != UserRole.Customer)
         {
-            return ApiResponse<WalletDto>.Fail("Only customer can deposit wallet.");
+            return ApiResponse<WalletDto>.Fail("Chỉ khách hàng mới có thể nạp ví.");
         }
 
         if (request.Deposit.Amount <= 0)
         {
-            return ApiResponse<WalletDto>.Fail("Deposit amount must be greater than 0.");
+            return ApiResponse<WalletDto>.Fail("Số tiền nạp phải lớn hơn 0.");
         }
+
+        await using var transaction = await context.BeginTransactionAsync(cancellationToken);
 
         var wallet = await context.Wallets
             .FirstOrDefaultAsync(wallet => wallet.UserId == request.CurrentUserId, cancellationToken);
@@ -35,14 +37,24 @@ public class DepositWalletCommandHandler(IApplicationDbContext context)
             };
 
             context.Wallets.Add(wallet);
-            await context.SaveChangesAsync(cancellationToken);
         }
 
         wallet.Balance += request.Deposit.Amount;
         wallet.UpdatedAt = DateTime.UtcNow;
 
-        await context.SaveChangesAsync(cancellationToken);
+        context.PaymentTransactions.Add(new PaymentTransaction
+        {
+            UserId = request.CurrentUserId,
+            TransactionCode = "Deposit",
+            Amount = request.Deposit.Amount,
+            Status = PaymentStatus.Paid,
+            Note = "Nạp ví",
+            CreatedAt = DateTime.UtcNow
+        });
 
-        return ApiResponse<WalletDto>.Ok(PaymentDtoMapper.ToWalletDto(wallet), "Wallet deposited successfully.");
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return ApiResponse<WalletDto>.Ok(PaymentDtoMapper.ToWalletDto(wallet), "Nạp ví thành công.");
     }
 }

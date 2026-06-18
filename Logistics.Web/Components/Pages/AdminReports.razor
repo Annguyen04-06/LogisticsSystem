@@ -37,7 +37,7 @@ else
 {
     @if (IsAdmin && adminRevenue is not null)
     {
-        <div class="row g-3 mb-4 fade-in">
+        <div class="row g-3 mb-4 fade-in stat-grid-row">
             @StatCard("Tổng doanh thu", FormatCurrency(adminRevenue.TotalRevenue), "Chỉ tính đơn đã giao", "bi-cash-stack")
             @StatCard("Tổng đơn hàng", adminRevenue.TotalOrders.ToString("N0"), "Tất cả đơn trong hệ thống", "bi-receipt")
             @StatCard("Đơn đã giao", adminRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất", "bi-check2-circle")
@@ -162,12 +162,12 @@ else
                         <table class="table table-hover align-middle modern-table mb-0">
                             <thead>
                                 <tr>
-                                    <th>Mã</th>
+                                    <th class="table-id">Mã</th>
                                     <th>Người bán</th>
-                                    <th>Tổng đơn</th>
-                                    <th>Đã giao</th>
-                                    <th>Đã bán</th>
-                                    <th>Doanh thu</th>
+                                    <th class="table-number">Tổng đơn</th>
+                                    <th class="table-number">Đã giao</th>
+                                    <th class="table-number">Đã bán</th>
+                                    <th class="table-money">Doanh thu</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -182,12 +182,12 @@ else
                                     @foreach (var seller in topSellers.Take(10))
                                     {
                                         <tr>
-                                            <td>#@seller.SellerId</td>
+                                            <td class="table-id">#@seller.SellerId</td>
                                             <td class="fw-semibold">@seller.SellerName</td>
-                                            <td>@seller.TotalOrders.ToString("N0")</td>
-                                            <td>@seller.DeliveredOrders.ToString("N0")</td>
-                                            <td>@seller.TotalProductsSold.ToString("N0")</td>
-                                            <td class="fw-bold currency-value">@FormatCurrency(seller.TotalRevenue)</td>
+                                            <td class="table-number">@seller.TotalOrders.ToString("N0")</td>
+                                            <td class="table-number">@seller.DeliveredOrders.ToString("N0")</td>
+                                            <td class="table-number">@seller.TotalProductsSold.ToString("N0")</td>
+                                            <td class="fw-bold currency-value table-money">@FormatCurrency(seller.TotalRevenue)</td>
                                         </tr>
                                     }
                                 }
@@ -211,8 +211,8 @@ else
                             <thead>
                                 <tr>
                                     <th>Sản phẩm</th>
-                                    <th>Đã bán</th>
-                                    <th>Doanh thu</th>
+                                    <th class="table-number">Đã bán</th>
+                                    <th class="table-money">Doanh thu</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -228,8 +228,8 @@ else
                                     {
                                         <tr>
                                             <td class="fw-semibold">@product.ProductName</td>
-                                            <td>@product.TotalSold.ToString("N0")</td>
-                                            <td class="fw-bold currency-value">@FormatCurrency(product.TotalRevenue)</td>
+                                            <td class="table-number">@product.TotalSold.ToString("N0")</td>
+                                            <td class="fw-bold currency-value table-money">@FormatCurrency(product.TotalRevenue)</td>
                                         </tr>
                                     }
                                 }
@@ -282,7 +282,7 @@ else
 
     @if (IsSeller && sellerRevenue is not null)
     {
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-4 stat-grid-row">
             @StatCard("Doanh thu của tôi", FormatCurrency(sellerRevenue.TotalRevenue), sellerRevenue.SellerName, "bi-cash-stack")
             @StatCard("Tổng đơn hàng", sellerRevenue.TotalOrders.ToString("N0"), "Đơn hàng của người bán", "bi-receipt")
             @StatCard("Đơn đã giao", sellerRevenue.DeliveredOrders.ToString("N0"), "Đơn hoàn tất", "bi-check2-circle")

@@ -9,6 +9,7 @@ using Logistics.Application.Features.Payments.Queries.GetMyPayments;
 using Logistics.Application.Features.Payments.Queries.GetMyWallet;
 using Logistics.Application.Features.Payments.Queries.GetOrderBankingQr;
 using Logistics.Application.Features.Payments.Queries.GetPaymentByOrderId;
+using Logistics.Application.Features.Payments.Queries.GetWalletTransactions;
 using Logistics.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -161,6 +162,27 @@ public class PaymentsController(IMediator mediator, IConfiguration configuration
 
         var response = await mediator.Send(
             new GetMyPaymentsQuery(currentUserId, currentUserRole),
+            cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    [HttpGet("wallet-transactions")]
+    [Authorize(Roles = "Customer")]
+    public async Task<IActionResult> GetWalletTransactions(CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUser(out var currentUserId, out var currentUserRole))
+        {
+            return Unauthorized();
+        }
+
+        var response = await mediator.Send(
+            new GetWalletTransactionsQuery(currentUserId, currentUserRole),
             cancellationToken);
 
         if (!response.Success)

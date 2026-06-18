@@ -186,7 +186,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne<Payment>()
             .WithMany()
             .HasForeignKey(transaction => transaction.PaymentId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<PaymentTransaction>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(transaction => transaction.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PaymentTransaction>()
+            .HasOne<Order>()
+            .WithMany()
+            .HasForeignKey(transaction => transaction.OrderId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<CouponUsage>()
             .HasOne<Coupon>()

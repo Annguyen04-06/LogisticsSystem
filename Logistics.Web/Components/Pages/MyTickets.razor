@@ -61,7 +61,7 @@
                                 @foreach (var order in myOrders)
                                 {
                                     <option value="@order.Id">
-                                        Đơn #@order.Id - @FormatMoney(order.FinalAmount) - @order.CreatedAt.ToString("dd/MM/yyyy")
+                                        Đơn #@order.Id - @FormatMoney(order.FinalAmount) - @VietnamDateTime.FormatDate(order.CreatedAt)
                                     </option>
                                 }
                             </select>
@@ -158,7 +158,7 @@
                                                     @GetStatusText(ticket.Status)
                                                 </span>
                                             </td>
-                                            <td>@ticket.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>@VietnamDateTime.Format(ticket.CreatedAt)</td>
                                             <td class="text-end">
                                                 <div class="admin-row-actions">
                                                     <button class="btn btn-sm btn-soft-primary action-btn" type="button" @onclick="() => SelectTicketAsync(ticket.Id)">
@@ -234,7 +234,7 @@
                         <div class="ticket-reply-card">
                             <div class="d-flex justify-content-between gap-2">
                                 <strong>@reply.UserName</strong>
-                                <span class="text-muted small">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                <span class="text-muted small">@VietnamDateTime.Format(reply.CreatedAt)</span>
                             </div>
                             <div class="mt-2">@reply.Message</div>
                         </div>

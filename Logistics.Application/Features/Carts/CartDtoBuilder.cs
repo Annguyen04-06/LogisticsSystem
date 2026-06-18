@@ -33,6 +33,7 @@ internal static class CartDtoBuilder
                 ProductName = product.Name,
                 Price = product.Price,
                 Quantity = item.Quantity,
+                ProductStock = product.Quantity,
                 TotalPrice = product.Price * item.Quantity
             }).ToListAsync(cancellationToken);
 

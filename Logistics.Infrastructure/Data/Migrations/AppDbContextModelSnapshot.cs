@@ -259,6 +259,9 @@ namespace Logistics.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("int");
+
                     b.Property<int>("SellerId")
                         .HasColumnType("int");
 
@@ -381,6 +384,9 @@ namespace Logistics.Infrastructure.Data.Migrations
                     b.Property<int>("OrderId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -418,7 +424,10 @@ namespace Logistics.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PaymentId")
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PaymentId")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -431,9 +440,16 @@ namespace Logistics.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("OrderId");
+
                     b.HasIndex("PaymentId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("PaymentTransactions");
                 });
@@ -889,10 +905,20 @@ namespace Logistics.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Logistics.Domain.Entities.PaymentTransaction", b =>
                 {
+                    b.HasOne("Logistics.Domain.Entities.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Logistics.Domain.Entities.Payment", null)
                         .WithMany()
                         .HasForeignKey("PaymentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Logistics.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

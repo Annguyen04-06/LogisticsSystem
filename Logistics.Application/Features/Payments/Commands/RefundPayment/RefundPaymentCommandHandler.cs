@@ -31,14 +31,20 @@ public class RefundPaymentCommandHandler(IApplicationDbContext context)
             return ApiResponse<PaymentDto>.Fail("Only paid payments can be refunded.");
         }
 
-        if (payment.Method == PaymentMethod.Wallet)
+        if (payment.Method is PaymentMethod.Wallet or PaymentMethod.BankingDemo)
         {
             var wallet = await context.Wallets
                 .FirstOrDefaultAsync(wallet => wallet.UserId == payment.UserId, cancellationToken);
 
             if (wallet is null)
             {
-                return ApiResponse<PaymentDto>.Fail("Customer wallet does not exist.");
+                wallet = new Wallet
+                {
+                    UserId = payment.UserId,
+                    Balance = 0
+                };
+
+                context.Wallets.Add(wallet);
             }
 
             wallet.Balance += payment.Amount;
@@ -51,10 +57,13 @@ public class RefundPaymentCommandHandler(IApplicationDbContext context)
         context.PaymentTransactions.Add(new PaymentTransaction
         {
             PaymentId = payment.Id,
+            UserId = payment.UserId,
+            OrderId = payment.OrderId,
             TransactionCode = "Refund",
             Amount = payment.Amount,
             Status = PaymentStatus.Refunded,
-            Note = "Payment refunded"
+            Note = $"Hoàn tiền do hủy đơn hàng #{payment.OrderId}",
+            CreatedAt = DateTime.UtcNow
         });
 
         await context.SaveChangesAsync(cancellationToken);

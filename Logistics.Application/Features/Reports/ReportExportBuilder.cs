@@ -1,4 +1,5 @@
 using ClosedXML.Excel;
+using Logistics.Application.Common;
 using Logistics.Application.DTOs.Reports;
 using Logistics.Domain.Enums;
 using QuestPDF.Fluent;
@@ -23,7 +24,7 @@ internal static class ReportExportBuilder
             worksheet.Cell(row, 2).Value = order.CustomerName;
             worksheet.Cell(row, 3).Value = order.SellerName;
             worksheet.Cell(row, 4).Value = order.Status.ToString();
-            worksheet.Cell(row, 5).Value = order.CreatedAt;
+            worksheet.Cell(row, 5).Value = VietnamTime.ToVietnamTime(order.CreatedAt);
             worksheet.Cell(row, 6).Value = order.TotalAmount;
             worksheet.Cell(row, 7).Value = order.DiscountAmount;
             worksheet.Cell(row, 8).Value = order.FinalAmount;
@@ -121,7 +122,7 @@ internal static class ReportExportBuilder
                     column.Item().Text($"Customer: {invoice.CustomerName}");
                     column.Item().Text($"Seller: {invoice.SellerName}");
                     column.Item().Text($"Status: {invoice.Status}");
-                    column.Item().Text($"Created: {invoice.CreatedAt:yyyy-MM-dd HH:mm}");
+                    column.Item().Text($"Ngày tạo: {VietnamTime.ToVietnamTime(invoice.CreatedAt):dd/MM/yyyy HH:mm}");
 
                     column.Item().Table(table =>
                     {

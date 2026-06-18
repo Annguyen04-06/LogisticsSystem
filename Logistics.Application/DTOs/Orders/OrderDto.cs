@@ -13,6 +13,10 @@ public class OrderDto
     public decimal TotalAmount { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal FinalAmount { get; set; }
+    public PaymentMethod PaymentMethod { get; set; }
+    public PaymentStatus PaymentStatus { get; set; }
+    public bool IsPaid { get; set; }
+    public DateTime? PaidAt { get; set; }
     public OrderStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<OrderDetailDto> Details { get; set; } = [];

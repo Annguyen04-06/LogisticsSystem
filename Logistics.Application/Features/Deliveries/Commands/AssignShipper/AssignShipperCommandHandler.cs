@@ -68,7 +68,7 @@ public class AssignShipperCommandHandler(IApplicationDbContext context)
         {
             existingDelivery.ShipperId = shipper.Id;
             existingDelivery.Status = OrderStatus.Confirmed.ToString();
-            existingDelivery.AssignedAt = DateTime.Now;
+            existingDelivery.AssignedAt = DateTime.UtcNow;
             existingDelivery.DeliveredAt = null;
             existingDelivery.UpdatedAt = DateTime.UtcNow;
         }
@@ -79,7 +79,7 @@ public class AssignShipperCommandHandler(IApplicationDbContext context)
                 OrderId = order.Id,
                 ShipperId = shipper.Id,
                 Status = OrderStatus.Confirmed.ToString(),
-                AssignedAt = DateTime.Now
+                AssignedAt = DateTime.UtcNow
             };
 
             context.Deliveries.Add(existingDelivery);

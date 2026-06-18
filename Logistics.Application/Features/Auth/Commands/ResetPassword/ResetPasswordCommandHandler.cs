@@ -49,14 +49,14 @@ public class ResetPasswordCommandHandler(
             return ApiResponse<string>.Fail("Mã đặt lại mật khẩu đã được sử dụng.");
         }
 
-        if (resetToken.ExpiredAt < DateTime.Now)
+        if (resetToken.ExpiredAt < DateTime.UtcNow)
         {
             return ApiResponse<string>.Fail("Mã đặt lại mật khẩu đã hết hạn.");
         }
 
         user.PasswordHash = passwordService.HashPassword(dto.NewPassword);
         resetToken.IsUsed = true;
-        resetToken.UsedAt = DateTime.Now;
+        resetToken.UsedAt = DateTime.UtcNow;
 
         await context.SaveChangesAsync(cancellationToken);
 

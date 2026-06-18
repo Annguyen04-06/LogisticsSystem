@@ -5,15 +5,13 @@
 
 <div class="sidebar-brand">
     <div class="brand-mark">LS</div>
-    <div>
+    <div class="brand-copy">
         <div class="brand-title">Hệ thống Logistics</div>
         <div class="brand-subtitle">Quản lý vận hành</div>
     </div>
 </div>
 
-<input type="checkbox" title="Menu điều hướng" class="nav-toggle" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.nav-toggle')?.click()">
+<div class="nav-scrollable">
     <nav class="sidebar-nav">
         @if (!AuthState.IsAuthenticated)
         {
@@ -50,7 +48,7 @@
         {
             <div class="nav-section">Người giao hàng</div>
             @NavItem("shipper-orders", "bi-truck", "Đơn cần giao")
-            @NavItem("delivery-history", "bi-receipt", "Lịch sử giao hàng")
+            @NavItem("delivery-history", "bi-clock-history", "Lịch sử giao hàng")
             <div class="nav-section">Tài khoản</div>
             @NavItem("profile", "bi-person-circle", "Hồ sơ cá nhân")
             @LogoutButton()

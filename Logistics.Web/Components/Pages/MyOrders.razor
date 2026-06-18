@@ -44,21 +44,37 @@ else
                         </div>
                         <div>
                             <h2 class="h5 fw-bold mb-1">Mã đơn #@order.Id</h2>
-                            <div class="text-muted small">Ngày tạo: @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                            <div class="text-muted small">Ngày tạo: @VietnamDateTime.Format(order.CreatedAt)</div>
                             <div class="text-muted small">Người bán: @order.SellerName</div>
                         </div>
                     </div>
                     <div class="text-end">
-                            <span class="status-badge @GetStatusBadgeClass(order.Status)">@GetVietnameseStatus(order.Status)</span>
-                        @if (order.Status == "Pending")
+                        <div class="d-flex justify-content-end gap-2 flex-wrap">
+                            <span class="status-badge @GetStatusBadgeClass(order.Status)">
+                                <i class="bi bi-box-seam me-1"></i>@GetVietnameseStatus(order.Status)
+                            </span>
+                            <span class="status-badge @GetPaymentBadgeClass(order)">
+                                <i class="bi @GetPaymentIcon(order) me-1"></i>@GetPaymentStatusText(order)
+                            </span>
+                        </div>
+                        <div class="text-muted small mt-2">
+                            Phương thức: <strong>@GetPaymentMethodText(order.PaymentMethod)</strong>
+                        </div>
+                        @if (order.Status == "Pending" || CanPay(order))
                         {
                             <div class="mt-2 d-flex justify-content-end gap-2 flex-wrap">
-                                <button class="btn btn-sm btn-soft-warning action-btn" @onclick="() => CancelOrderAsync(order.Id)">
-                                    <i class="bi bi-x-circle"></i> Hủy
-                                </button>
-                                <button class="btn btn-sm btn-gradient-primary action-btn" @onclick="() => GoToPayment(order.Id)">
-                                    <i class="bi bi-wallet2"></i> Thanh toán
-                                </button>
+                                @if (order.Status == "Pending")
+                                {
+                                    <button class="btn btn-sm btn-soft-warning action-btn" @onclick="() => CancelOrderAsync(order.Id)">
+                                        <i class="bi bi-x-circle"></i> Hủy
+                                    </button>
+                                }
+                                @if (CanPay(order))
+                                {
+                                    <button class="btn btn-sm btn-gradient-primary action-btn" @onclick="() => GoToPayment(order)">
+                                        <i class="bi bi-wallet2"></i> Thanh toán
+                                    </button>
+                                }
                             </div>
                         }
                     </div>
@@ -91,9 +107,9 @@ else
                             <thead>
                                 <tr>
                                     <th>Sản phẩm</th>
-                                    <th>Số lượng</th>
-                                    <th>Đơn giá</th>
-                                    <th>Thành tiền</th>
+                                    <th class="table-number">Số lượng</th>
+                                    <th class="table-money">Đơn giá</th>
+                                    <th class="table-money">Thành tiền</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -101,9 +117,9 @@ else
                                 {
                                     <tr>
                                         <td class="fw-semibold">@detail.ProductName</td>
-                                        <td>@detail.Quantity</td>
-                                        <td class="currency-value">@FormatMoney(detail.UnitPrice)</td>
-                                        <td class="fw-bold currency-value">@FormatMoney(detail.TotalPrice)</td>
+                                        <td class="table-number">@detail.Quantity</td>
+                                        <td class="currency-value table-money">@FormatMoney(detail.UnitPrice)</td>
+                                        <td class="fw-bold currency-value table-money">@FormatMoney(detail.TotalPrice)</td>
                                     </tr>
                                 }
                             </tbody>
@@ -165,9 +181,18 @@ else
         errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
     }
 
-    private void GoToPayment(int orderId)
+    private void GoToPayment(OrderDto order)
     {
-        Navigation.NavigateTo($"/payments?orderId={orderId}");
+        Navigation.NavigateTo(
+            $"/payments?orderId={order.Id}&method={Uri.EscapeDataString(order.PaymentMethod)}");
+    }
+
+    private static bool CanPay(OrderDto order)
+    {
+        return !order.IsPaid
+            && order.PaymentStatus is not "Paid" and not "Refunded"
+            && order.Status is not "Cancelled" and not "Delivered"
+            && order.PaymentMethod is "Wallet" or "BankingDemo";
     }
 
     private static string GetVietnameseStatus(string status)
@@ -193,6 +218,65 @@ else
             "Delivered" => "status-delivered",
             "Cancelled" => "status-cancelled",
             _ => "text-bg-secondary"
+        };
+    }
+
+    private static string GetPaymentStatusText(OrderDto order)
+    {
+        if (order.PaymentMethod == "COD")
+        {
+            return "Thanh toán khi nhận hàng";
+        }
+
+        return order.PaymentStatus switch
+        {
+            "Paid" => "Đã thanh toán",
+            "Refunded" => "Đã hoàn tiền",
+            "Failed" => "Thanh toán thất bại",
+            _ => "Chưa thanh toán"
+        };
+    }
+
+    private static string GetPaymentBadgeClass(OrderDto order)
+    {
+        if (order.PaymentMethod == "COD")
+        {
+            return "badge-soft-secondary";
+        }
+
+        return order.PaymentStatus switch
+        {
+            "Paid" => "badge-soft-success",
+            "Refunded" => "badge-soft-info",
+            "Failed" => "badge-soft-danger",
+            _ => "badge-soft-warning"
+        };
+    }
+
+    private static string GetPaymentIcon(OrderDto order)
+    {
+        if (order.PaymentMethod == "COD")
+        {
+            return "bi-cash-coin";
+        }
+
+        return order.PaymentStatus switch
+        {
+            "Paid" => "bi-check-circle",
+            "Refunded" => "bi-arrow-counterclockwise",
+            "Failed" => "bi-exclamation-circle",
+            _ => "bi-hourglass-split"
+        };
+    }
+
+    private static string GetPaymentMethodText(string method)
+    {
+        return method switch
+        {
+            "COD" => "Thanh toán khi nhận hàng",
+            "Wallet" => "Ví điện tử",
+            "BankingDemo" => "Chuyển khoản giả lập",
+            _ => method
         };
     }
 

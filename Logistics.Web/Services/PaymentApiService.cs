@@ -33,6 +33,12 @@ public class PaymentApiService(ApiClientService apiClient)
         return await apiClient.GetAsync<ApiResponse<List<PaymentDto>>>("api/payments/my-payments");
     }
 
+    public async Task<ApiResponse<List<WalletTransactionDto>>?> GetWalletTransactionsAsync()
+    {
+        return await apiClient.GetAsync<ApiResponse<List<WalletTransactionDto>>>(
+            "api/payments/wallet-transactions");
+    }
+
     public async Task<ApiResponse<PaymentDto>?> PayOrderAsync(PayOrderDto request)
     {
         var response = await apiClient.PostAsync("api/payments/pay-order", request);

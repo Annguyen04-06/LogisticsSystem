@@ -41,9 +41,9 @@ else
             <table class="table table-hover align-middle modern-table mb-0">
                 <thead>
                     <tr>
-                        <th>Mã giao hàng</th>
-                        <th>Mã đơn</th>
-                        <th>Trạng thái</th>
+                        <th class="table-id">Mã giao hàng</th>
+                        <th class="table-id">Mã đơn</th>
+                        <th class="table-status">Trạng thái</th>
                         <th>Ngày nhận đơn</th>
                         <th>Ngày giao xong</th>
                     </tr>
@@ -60,11 +60,11 @@ else
                         @foreach (var delivery in deliveries)
                         {
                             <tr>
-                                <td class="fw-semibold">#@delivery.Id</td>
-                                <td>#@delivery.OrderId</td>
-                                <td><span class="status-badge @GetStatusBadgeClass(delivery.Status)">@GetVietnameseStatus(delivery.Status)</span></td>
-                                <td>@delivery.AssignedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@(delivery.DeliveredAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                                <td class="fw-semibold table-id">#@delivery.Id</td>
+                                <td class="table-id">#@delivery.OrderId</td>
+                                <td class="table-status"><span class="status-badge @GetStatusBadgeClass(delivery.Status)">@GetVietnameseStatus(delivery.Status)</span></td>
+                                <td>@VietnamDateTime.Format(delivery.AssignedAt)</td>
+                                <td>@VietnamDateTime.Format(delivery.DeliveredAt)</td>
                             </tr>
                         }
                     }

@@ -91,11 +91,11 @@
                     <table class="table table-hover align-middle modern-table mb-0">
                         <thead>
                             <tr>
-                                <th>Mã danh mục</th>
+                                <th class="table-id">Mã danh mục</th>
                                 <th>Tên danh mục</th>
                                 <th>Mô tả</th>
-                                <th>Trạng thái</th>
-                                <th class="text-end">Thao tác</th>
+                                <th class="table-status">Trạng thái</th>
+                                <th class="table-actions">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -110,15 +110,15 @@
                                 @foreach (var category in categories)
                                 {
                                     <tr>
-                                        <td class="fw-semibold">#@category.Id</td>
+                                        <td class="fw-semibold table-id">#@category.Id</td>
                                         <td class="fw-semibold">@category.Name</td>
                                         <td class="text-muted">@category.Description</td>
-                                        <td>
+                                        <td class="table-status">
                                             <span class="status-badge @(category.IsActive ? "badge-soft-success" : "badge-soft-secondary")">
                                                 @(category.IsActive ? "Đang sử dụng" : "Ngừng sử dụng")
                                             </span>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="table-actions">
                                             <div class="admin-row-actions">
                                                 <button class="btn btn-sm btn-soft-warning action-btn" type="button" @onclick="() => StartEdit(category)">
                                                     <i class="bi bi-pencil-square"></i> Sửa

@@ -25,7 +25,7 @@ public class ForgotPasswordCommandHandler(
         }
 
         var email = dto.Email.Trim().ToLower();
-        var expiredAt = DateTime.Now.AddMinutes(15);
+        var expiredAt = DateTime.UtcNow.AddMinutes(15);
         var response = new ForgotPasswordResponseDto
         {
             Email = email,
@@ -48,7 +48,7 @@ public class ForgotPasswordCommandHandler(
             Token = token,
             ExpiredAt = expiredAt,
             IsUsed = false,
-            CreatedAt = DateTime.Now
+            CreatedAt = DateTime.UtcNow
         });
 
         await context.SaveChangesAsync(cancellationToken);

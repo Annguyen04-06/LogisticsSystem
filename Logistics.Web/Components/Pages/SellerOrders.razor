@@ -61,21 +61,23 @@ else
             <table class="table table-hover align-middle modern-table mb-0">
                 <thead>
                     <tr>
-                        <th>Mã đơn</th>
+                        <th class="table-id">Mã đơn</th>
                         <th>Khách hàng</th>
-                        <th>Tổng tiền</th>
-                        <th>Thành tiền</th>
-                        <th>Trạng thái</th>
+                        <th class="table-money">Tổng tiền</th>
+                        <th class="table-money">Thành tiền</th>
+                        <th class="table-status">Đơn hàng</th>
+                        <th class="table-status">Thanh toán</th>
+                        <th>Phương thức</th>
                         <th>Ngày tạo</th>
                         <th style="min-width: 260px;">Người giao hàng</th>
-                        <th class="text-end">Thao tác</th>
+                        <th class="table-actions">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (orders.Count == 0)
                     {
                         <tr>
-                            <td colspan="8">
+                            <td colspan="10">
                                 <div class="empty-state">
                                     <i class="bi bi-inbox"></i>
                                     Chưa có dữ liệu.
@@ -88,16 +90,24 @@ else
                         @foreach (var order in orders)
                         {
                             <tr>
-                                <td>#@order.Id</td>
+                                <td class="table-id">#@order.Id</td>
                                 <td>@order.CustomerName</td>
-                                <td class="currency-value">@FormatCurrency(order.TotalAmount)</td>
-                                <td class="fw-bold currency-value">@FormatCurrency(order.FinalAmount)</td>
-                                <td>
+                                <td class="currency-value table-money">@FormatCurrency(order.TotalAmount)</td>
+                                <td class="fw-bold currency-value table-money">@FormatCurrency(order.FinalAmount)</td>
+                                <td class="table-status">
                                     <span class="status-badge @GetStatusBadgeClass(order.Status)">
                                         @GetVietnameseStatus(order.Status)
                                     </span>
                                 </td>
-                                <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="table-status">
+                                    <span class="status-badge @GetPaymentBadgeClass(order)">
+                                        @GetPaymentStatusText(order)
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="small fw-semibold">@GetPaymentMethodText(order.PaymentMethod)</span>
+                                </td>
+                                <td>@VietnamDateTime.Format(order.CreatedAt)</td>
                                 <td>
                                     @if (order.Status == "Confirmed")
                                     {
@@ -128,10 +138,12 @@ else
                                         <span class="text-muted">Chưa cần gán</span>
                                     }
                                 </td>
-                                <td class="text-end">
+                                <td class="table-actions">
                                     @if (order.Status == "Pending")
                                     {
-                                        <button class="btn btn-sm btn-soft-success action-btn me-1" type="button" @onclick="() => ConfirmOrderAsync(order.Id)">
+                                        <button class="btn btn-sm btn-soft-success action-btn me-1"
+                                                type="button"
+                                                @onclick="() => ConfirmOrderAsync(order)">
                                             <i class="bi bi-check-circle"></i> Xác nhận đơn
                                         </button>
                                     }
@@ -245,11 +257,18 @@ else
         }
     }
 
-    private async Task ConfirmOrderAsync(int orderId)
+    private async Task ConfirmOrderAsync(OrderDto order)
     {
         ClearMessages();
 
-        var response = await DeliveryApiService.ConfirmOrderAsync(orderId);
+        if (order.PaymentMethod is "Wallet" or "BankingDemo" &&
+            (!order.IsPaid || order.PaymentStatus != "Paid"))
+        {
+            errorMessage = "Đơn hàng chưa được thanh toán nên chưa thể xác nhận.";
+            return;
+        }
+
+        var response = await DeliveryApiService.ConfirmOrderAsync(order.Id);
         if (response?.Success == true)
         {
             successMessage = "Xác nhận đơn thành công.";
@@ -339,6 +358,49 @@ else
             "Delivered" => "status-delivered",
             "Cancelled" => "status-cancelled",
             _ => "text-bg-secondary"
+        };
+    }
+
+    private static string GetPaymentStatusText(OrderDto order)
+    {
+        if (order.PaymentMethod == "COD")
+        {
+            return "Thanh toán khi nhận hàng";
+        }
+
+        return order.PaymentStatus switch
+        {
+            "Paid" => "Đã thanh toán",
+            "Refunded" => "Đã hoàn tiền",
+            "Failed" => "Thanh toán thất bại",
+            _ => "Chưa thanh toán"
+        };
+    }
+
+    private static string GetPaymentBadgeClass(OrderDto order)
+    {
+        if (order.PaymentMethod == "COD")
+        {
+            return "badge-soft-secondary";
+        }
+
+        return order.PaymentStatus switch
+        {
+            "Paid" => "badge-soft-success",
+            "Refunded" => "badge-soft-info",
+            "Failed" => "badge-soft-danger",
+            _ => "badge-soft-warning"
+        };
+    }
+
+    private static string GetPaymentMethodText(string method)
+    {
+        return method switch
+        {
+            "COD" => "Thanh toán khi nhận hàng",
+            "Wallet" => "Ví điện tử",
+            "BankingDemo" => "Chuyển khoản giả lập",
+            _ => method
         };
     }
 }

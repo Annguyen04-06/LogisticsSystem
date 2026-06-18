@@ -113,13 +113,13 @@
                             <tr>
                                 <th>Mã giảm giá</th>
                                 <th>Loại giảm</th>
-                                <th>Giá trị</th>
-                                <th>Đơn tối thiểu</th>
+                                <th class="table-money">Giá trị</th>
+                                <th class="table-money">Đơn tối thiểu</th>
                                 <th>Ngày bắt đầu</th>
                                 <th>Ngày kết thúc</th>
-                                <th>Đã dùng</th>
-                                <th>Trạng thái</th>
-                                <th class="text-end">Thao tác</th>
+                                <th class="table-number">Đã dùng</th>
+                                <th class="table-status">Trạng thái</th>
+                                <th class="table-actions">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -141,17 +141,17 @@
                                     <tr>
                                         <td class="fw-semibold">@coupon.Code</td>
                                         <td><span class="status-badge badge-soft-info">@DisplayDiscountType(coupon.DiscountType)</span></td>
-                                        <td class="currency-value">@DisplayDiscountValue(coupon)</td>
-                                        <td class="currency-value">@FormatCurrency(coupon.MinOrderAmount)</td>
-                                        <td>@coupon.StartDate.ToString("dd/MM/yyyy")</td>
-                                        <td>@coupon.EndDate.ToString("dd/MM/yyyy")</td>
-                                        <td>@coupon.UsedCount.ToString("N0") / @coupon.UsageLimit.ToString("N0")</td>
-                                        <td>
+                                        <td class="currency-value table-money">@DisplayDiscountValue(coupon)</td>
+                                        <td class="currency-value table-money">@FormatCurrency(coupon.MinOrderAmount)</td>
+                                        <td>@VietnamDateTime.Format(coupon.StartDate)</td>
+                                        <td>@VietnamDateTime.Format(coupon.EndDate)</td>
+                                        <td class="table-number">@coupon.UsedCount.ToString("N0") / @coupon.UsageLimit.ToString("N0")</td>
+                                        <td class="table-status">
                                             <span class="status-badge @(coupon.IsActive ? "badge-soft-success" : "badge-soft-secondary")">
                                                 @(coupon.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
                                             </span>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="table-actions">
                                             <div class="admin-row-actions">
                                                 <button class="btn btn-sm btn-soft-warning action-btn" type="button" @onclick="() => StartEdit(coupon)">
                                                     <i class="bi bi-pencil-square"></i> Sửa
@@ -336,8 +336,8 @@
             DiscountType = coupon.DiscountType,
             DiscountValue = coupon.DiscountValue,
             MinOrderAmount = coupon.MinOrderAmount,
-            StartDate = coupon.StartDate,
-            EndDate = coupon.EndDate,
+            StartDate = VietnamDateTime.ToLocal(coupon.StartDate),
+            EndDate = VietnamDateTime.ToLocal(coupon.EndDate),
             UsageLimit = coupon.UsageLimit,
             IsActive = coupon.IsActive
         };
@@ -378,8 +378,8 @@
         return new CreateCouponDto
         {
             DiscountType = "Percent",
-            StartDate = DateTime.Today,
-            EndDate = DateTime.Today.AddDays(30),
+            StartDate = VietnamDateTime.Today,
+            EndDate = VietnamDateTime.Today.AddDays(30),
             UsageLimit = 1,
             IsActive = true
         };

@@ -12,10 +12,11 @@ internal static class ReportQueryHelper
         IQueryable<Logistics.Domain.Entities.Order> ordersQuery,
         CancellationToken cancellationToken)
     {
+        var paidDeliveredOrders = PaidDeliveredOrders(context, ordersQuery);
+
         return new RevenueReportDto
         {
-            TotalRevenue = await ordersQuery
-                .Where(order => order.Status == OrderStatus.Delivered)
+            TotalRevenue = await paidDeliveredOrders
                 .SumAsync(order => (decimal?)order.FinalAmount, cancellationToken) ?? 0,
             TotalOrders = await ordersQuery.CountAsync(cancellationToken),
             DeliveredOrders = await ordersQuery.CountAsync(
@@ -44,13 +45,13 @@ internal static class ReportQueryHelper
         }
 
         var sellerOrders = context.Orders.Where(order => order.SellerId == sellerId);
+        var paidDeliveredOrders = PaidDeliveredOrders(context, sellerOrders);
 
         return new SellerRevenueReportDto
         {
             SellerId = seller.Id,
             SellerName = seller.FullName,
-            TotalRevenue = await sellerOrders
-                .Where(order => order.Status == OrderStatus.Delivered)
+            TotalRevenue = await paidDeliveredOrders
                 .SumAsync(order => (decimal?)order.FinalAmount, cancellationToken) ?? 0,
             TotalOrders = await sellerOrders.CountAsync(cancellationToken),
             DeliveredOrders = await sellerOrders.CountAsync(
@@ -72,7 +73,12 @@ internal static class ReportQueryHelper
                 SellerId = seller.Id,
                 SellerName = seller.FullName,
                 TotalRevenue = sellerOrders
-                    .Where(order => order.Status == OrderStatus.Delivered)
+                    .Where(order =>
+                        order.Status == OrderStatus.Delivered &&
+                        context.Payments.Any(payment =>
+                            payment.OrderId == order.Id && payment.Status == PaymentStatus.Paid) &&
+                        !context.Payments.Any(payment =>
+                            payment.OrderId == order.Id && payment.Status == PaymentStatus.Refunded))
                     .Sum(order => (decimal?)order.FinalAmount) ?? 0,
                 TotalOrders = sellerOrders.Count(),
                 DeliveredOrders = sellerOrders.Count(order => order.Status == OrderStatus.Delivered)
@@ -86,7 +92,7 @@ internal static class ReportQueryHelper
         int? sellerId,
         CancellationToken cancellationToken)
     {
-        var deliveredOrders = context.Orders.Where(order => order.Status == OrderStatus.Delivered);
+        var deliveredOrders = PaidDeliveredOrders(context, context.Orders);
 
         if (sellerId.HasValue)
         {
@@ -108,5 +114,17 @@ internal static class ReportQueryHelper
             })
             .Take(20)
             .ToListAsync(cancellationToken);
+    }
+
+    private static IQueryable<Logistics.Domain.Entities.Order> PaidDeliveredOrders(
+        IApplicationDbContext context,
+        IQueryable<Logistics.Domain.Entities.Order> ordersQuery)
+    {
+        return ordersQuery.Where(order =>
+            order.Status == OrderStatus.Delivered &&
+            context.Payments.Any(payment =>
+                payment.OrderId == order.Id && payment.Status == PaymentStatus.Paid) &&
+            !context.Payments.Any(payment =>
+                payment.OrderId == order.Id && payment.Status == PaymentStatus.Refunded));
     }
 }

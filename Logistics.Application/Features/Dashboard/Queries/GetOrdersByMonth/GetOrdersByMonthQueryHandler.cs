@@ -19,28 +19,51 @@ public class GetOrdersByMonthQueryHandler(IApplicationDbContext context)
             return ApiResponse<List<OrderStatisticsByMonthDto>>.Fail("Only admin can view order statistics by month.");
         }
 
-        var year = request.Year ?? DateTime.UtcNow.Year;
+        var year = request.Year ?? VietnamTime.Now.Year;
 
         if (year <= 0)
         {
             return ApiResponse<List<OrderStatisticsByMonthDto>>.Fail("Year is invalid.");
         }
 
-        var statistics = await context.Orders
-            .Where(order => order.CreatedAt.Year == year)
-            .GroupBy(order => new { order.CreatedAt.Year, order.CreatedAt.Month })
+        var startUtc = VietnamTime.ToUtc(new DateTime(year, 1, 1));
+        var endUtc = VietnamTime.ToUtc(new DateTime(year + 1, 1, 1));
+
+        var orders = await context.Orders
+            .Where(order => order.CreatedAt >= startUtc && order.CreatedAt < endUtc)
+            .Select(order => new
+            {
+                order.CreatedAt,
+                order.Status,
+                order.FinalAmount,
+                IsPaid = context.Payments.Any(payment =>
+                    payment.OrderId == order.Id && payment.Status == PaymentStatus.Paid) &&
+                    !context.Payments.Any(payment =>
+                        payment.OrderId == order.Id && payment.Status == PaymentStatus.Refunded)
+            })
+            .ToListAsync(cancellationToken);
+
+        var statistics = orders
+            .Select(order => new
+            {
+                VietnamCreatedAt = VietnamTime.ToVietnamTime(order.CreatedAt),
+                order.Status,
+                order.FinalAmount,
+                order.IsPaid
+            })
+            .GroupBy(order => new { order.VietnamCreatedAt.Year, order.VietnamCreatedAt.Month })
             .Select(group => new OrderStatisticsByMonthDto
             {
                 Year = group.Key.Year,
                 Month = group.Key.Month,
                 TotalOrders = group.Count(),
                 Revenue = group
-                    .Where(order => order.Status == OrderStatus.Delivered)
-                    .Sum(order => (decimal?)order.FinalAmount) ?? 0
+                    .Where(order => order.Status == OrderStatus.Delivered && order.IsPaid)
+                    .Sum(order => order.FinalAmount)
             })
             .OrderBy(item => item.Year)
             .ThenBy(item => item.Month)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return ApiResponse<List<OrderStatisticsByMonthDto>>.Ok(statistics);
     }

@@ -25,12 +25,15 @@ public class UpdateCouponCommandHandler(IApplicationDbContext context)
             return ApiResponse<CouponDto>.Fail("Coupon does not exist.");
         }
 
+        var startDateUtc = VietnamTime.ToUtc(request.Coupon.StartDate);
+        var endDateUtc = VietnamTime.ToUtc(request.Coupon.EndDate);
+
         var validationError = CouponHelper.ValidateCouponFields(
             request.Coupon.DiscountType,
             request.Coupon.DiscountValue,
             request.Coupon.MinOrderAmount,
-            request.Coupon.StartDate,
-            request.Coupon.EndDate,
+            startDateUtc,
+            endDateUtc,
             request.Coupon.UsageLimit);
 
         if (validationError is not null)
@@ -41,8 +44,8 @@ public class UpdateCouponCommandHandler(IApplicationDbContext context)
         coupon.DiscountType = request.Coupon.DiscountType;
         coupon.DiscountValue = request.Coupon.DiscountValue;
         coupon.MinOrderAmount = request.Coupon.MinOrderAmount;
-        coupon.StartDate = request.Coupon.StartDate;
-        coupon.EndDate = request.Coupon.EndDate;
+        coupon.StartDate = startDateUtc;
+        coupon.EndDate = endDateUtc;
         coupon.UsageLimit = request.Coupon.UsageLimit;
         coupon.IsActive = request.Coupon.IsActive;
         coupon.UpdatedAt = DateTime.UtcNow;

@@ -214,6 +214,67 @@
     </div>
 }
 
+<div class="modern-card modern-table-wrapper payment-history-card fade-in mb-4">
+    <div class="admin-card-header">
+        <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+        <div>
+            <h2>Lịch sử giao dịch ví</h2>
+            <p>Theo dõi nạp ví, thanh toán và hoàn tiền.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle modern-table mb-0">
+            <thead>
+                <tr>
+                    <th class="table-id">Mã giao dịch</th>
+                    <th>Loại giao dịch</th>
+                    <th class="table-money">Số tiền</th>
+                    <th>Nội dung</th>
+                    <th class="table-status">Trạng thái</th>
+                    <th>Ngày tạo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (walletTransactions.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="bi bi-wallet2"></i>
+                                Chưa có giao dịch ví.
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var transaction in walletTransactions)
+                    {
+                        <tr>
+                            <td class="table-id">#@transaction.Id</td>
+                            <td>
+                                <span class="status-badge @GetWalletTypeBadgeClass(transaction.Type)">
+                                    @GetWalletTransactionTypeText(transaction.Type)
+                                </span>
+                            </td>
+                            <td class="fw-bold money-text currency-value table-money @GetWalletAmountClass(transaction.Type)">
+                                @FormatWalletTransactionAmount(transaction)
+                            </td>
+                            <td>@transaction.Note</td>
+                            <td class="table-status">
+                                <span class="status-badge @GetWalletStatusBadgeClass(transaction.Status)">
+                                    @GetWalletStatusText(transaction.Status)
+                                </span>
+                            </td>
+                            <td>@VietnamDateTime.Format(transaction.CreatedAt)</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div class="modern-card modern-table-wrapper payment-history-card fade-in">
     <div class="admin-card-header">
         <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
@@ -226,11 +287,11 @@
         <table class="table table-hover align-middle modern-table mb-0">
             <thead>
                 <tr>
-                    <th>Mã thanh toán</th>
-                    <th>Mã đơn hàng</th>
-                    <th>Số tiền</th>
+                    <th class="table-id">Mã thanh toán</th>
+                    <th class="table-id">Mã đơn hàng</th>
+                    <th class="table-money">Số tiền</th>
                     <th>Phương thức</th>
-                    <th>Trạng thái</th>
+                    <th class="table-status">Trạng thái</th>
                     <th>Ngày tạo</th>
                 </tr>
             </thead>
@@ -251,16 +312,16 @@
                     @foreach (var payment in payments)
                     {
                         <tr>
-                            <td>#@payment.Id</td>
-                            <td>#@payment.OrderId</td>
-                            <td class="fw-bold currency-value">@FormatCurrency(payment.Amount)</td>
+                            <td class="table-id">#@payment.Id</td>
+                            <td class="table-id">#@payment.OrderId</td>
+                            <td class="fw-bold currency-value table-money">@FormatCurrency(payment.Amount)</td>
                             <td>@GetMethodText(payment.Method)</td>
-                            <td>
+                            <td class="table-status">
                                 <span class="badge status-badge @GetStatusBadgeClass(payment.Status)">
                                     @GetStatusText(payment.Status)
                                 </span>
                             </td>
-                            <td>@payment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@VietnamDateTime.Format(payment.CreatedAt)</td>
                         </tr>
                     }
                 }
@@ -274,6 +335,7 @@
     private BankingQrDto? walletBankingQr;
     private BankingQrDto? orderBankingQr;
     private List<PaymentDto> payments = [];
+    private List<WalletTransactionDto> walletTransactions = [];
     private DepositWalletDto depositForm = new();
     private PayOrderDto payForm = new();
     private decimal walletBalance = 0;
@@ -320,6 +382,7 @@
         {
             await LoadWalletAsync(false);
             await LoadPaymentsAsync(false);
+            await LoadWalletTransactionsAsync(false);
         }
         finally
         {
@@ -392,6 +455,32 @@
         catch
         {
             errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+        }
+    }
+
+    private async Task LoadWalletTransactionsAsync(bool clearMessages = true)
+    {
+        if (clearMessages)
+        {
+            ClearMessages();
+        }
+
+        try
+        {
+            var response = await PaymentApi.GetWalletTransactionsAsync();
+
+            if (response?.Success == true)
+            {
+                walletTransactions = response.Data ?? [];
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Không thể tải lịch sử giao dịch ví.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Không thể tải lịch sử giao dịch ví.";
         }
     }
 
@@ -525,6 +614,7 @@
                 successMessage = "Nạp ví thành công.";
                 await LoadWalletAsync(false);
                 await LoadPaymentsAsync(false);
+                await LoadWalletTransactionsAsync(false);
             }
             else
             {
@@ -588,9 +678,10 @@
                 successMessage = successOverride
                     ?? (payForm.Method == "COD"
                         ? "Đã ghi nhận thanh toán khi nhận hàng."
-                        : "Thanh toán thành công.");
+                        : "Thanh toán đơn hàng thành công.");
                 await LoadWalletAsync(false);
                 await LoadPaymentsAsync(false);
+                await LoadWalletTransactionsAsync(false);
             }
             else
             {
@@ -666,12 +757,23 @@
         foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
         {
             var keyValue = part.Split('=', 2);
-            if (keyValue.Length == 2
-                && string.Equals(keyValue[0], "orderId", StringComparison.OrdinalIgnoreCase)
-                && int.TryParse(Uri.UnescapeDataString(keyValue[1]), out var orderId))
+            if (keyValue.Length != 2)
+            {
+                continue;
+            }
+
+            var key = Uri.UnescapeDataString(keyValue[0]);
+            var value = Uri.UnescapeDataString(keyValue[1]);
+
+            if (string.Equals(key, "orderId", StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(value, out var orderId))
             {
                 payForm.OrderId = orderId;
-                return;
+            }
+            else if (string.Equals(key, "method", StringComparison.OrdinalIgnoreCase)
+                && value is "Wallet" or "BankingDemo" or "COD")
+            {
+                payForm.Method = value;
             }
         }
     }
@@ -729,6 +831,66 @@
             "Failed" => "text-bg-danger",
             "Refunded" => "text-bg-secondary",
             _ => "text-bg-secondary"
+        };
+    }
+
+    private static string GetWalletTransactionTypeText(string type)
+    {
+        return type switch
+        {
+            "Deposit" => "Nạp ví",
+            "Payment" => "Thanh toán đơn hàng",
+            "Refund" => "Hoàn tiền",
+            _ => type
+        };
+    }
+
+    private static string GetWalletTypeBadgeClass(string type)
+    {
+        return type switch
+        {
+            "Deposit" => "badge-soft-success",
+            "Payment" => "badge-soft-danger",
+            "Refund" => "badge-soft-info",
+            _ => "badge-soft-secondary"
+        };
+    }
+
+    private static string GetWalletAmountClass(string type)
+    {
+        return type switch
+        {
+            "Payment" => "text-danger",
+            "Refund" => "text-info",
+            _ => "text-success"
+        };
+    }
+
+    private static string FormatWalletTransactionAmount(WalletTransactionDto transaction)
+    {
+        var sign = transaction.Type == "Payment" ? "-" : "+";
+        return $"{sign}{transaction.Amount:N0} đ";
+    }
+
+    private static string GetWalletStatusText(string status)
+    {
+        return status switch
+        {
+            "Completed" => "Hoàn thành",
+            "Pending" => "Đang xử lý",
+            "Failed" => "Thất bại",
+            _ => status
+        };
+    }
+
+    private static string GetWalletStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Completed" => "badge-soft-success",
+            "Pending" => "badge-soft-warning",
+            "Failed" => "badge-soft-danger",
+            _ => "badge-soft-secondary"
         };
     }
 }

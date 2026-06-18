@@ -19,7 +19,7 @@ public class GetOrdersByDateQueryHandler(IApplicationDbContext context)
             return ApiResponse<List<OrderStatisticsByDateDto>>.Fail("Only admin can view order statistics by date.");
         }
 
-        var today = DateTime.UtcNow.Date;
+        var today = VietnamTime.Today;
         var fromDate = request.FromDate?.Date ?? today.AddDays(-29);
         var toDate = request.ToDate?.Date ?? today;
 
@@ -28,21 +28,35 @@ public class GetOrdersByDateQueryHandler(IApplicationDbContext context)
             return ApiResponse<List<OrderStatisticsByDateDto>>.Fail("ToDate must be greater than or equal to FromDate.");
         }
 
-        var endExclusive = toDate.AddDays(1);
+        var startUtc = VietnamTime.ToUtc(fromDate);
+        var endExclusiveUtc = VietnamTime.ToUtc(toDate.AddDays(1));
 
-        var statistics = await context.Orders
-            .Where(order => order.CreatedAt >= fromDate && order.CreatedAt < endExclusive)
-            .GroupBy(order => order.CreatedAt.Date)
+        var orders = await context.Orders
+            .Where(order => order.CreatedAt >= startUtc && order.CreatedAt < endExclusiveUtc)
+            .Select(order => new
+            {
+                order.CreatedAt,
+                order.Status,
+                order.FinalAmount,
+                IsPaid = context.Payments.Any(payment =>
+                    payment.OrderId == order.Id && payment.Status == PaymentStatus.Paid) &&
+                    !context.Payments.Any(payment =>
+                        payment.OrderId == order.Id && payment.Status == PaymentStatus.Refunded)
+            })
+            .ToListAsync(cancellationToken);
+
+        var statistics = orders
+            .GroupBy(order => VietnamTime.ToVietnamTime(order.CreatedAt).Date)
             .Select(group => new OrderStatisticsByDateDto
             {
                 Date = group.Key,
                 TotalOrders = group.Count(),
                 Revenue = group
-                    .Where(order => order.Status == OrderStatus.Delivered)
-                    .Sum(order => (decimal?)order.FinalAmount) ?? 0
+                    .Where(order => order.Status == OrderStatus.Delivered && order.IsPaid)
+                    .Sum(order => order.FinalAmount)
             })
             .OrderBy(item => item.Date)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return ApiResponse<List<OrderStatisticsByDateDto>>.Ok(statistics);
     }

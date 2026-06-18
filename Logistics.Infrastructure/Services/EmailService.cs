@@ -1,4 +1,5 @@
 using Logistics.Application.Interfaces;
+using Logistics.Application.Common;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
@@ -35,6 +36,8 @@ public class EmailService(IConfiguration configuration) : IEmailService
         message.To.Add(MailboxAddress.Parse(toEmail));
         message.Subject = "Đặt lại mật khẩu - Hệ thống quản lý Logistics";
 
+        var vietnamExpiredAt = VietnamTime.ToVietnamTime(expiredAt);
+
         message.Body = new TextPart("html")
         {
             Text = $"""
@@ -42,7 +45,7 @@ public class EmailService(IConfiguration configuration) : IEmailService
                    <p>Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản trong Hệ thống quản lý Logistics.</p>
                    <p>Mã đặt lại mật khẩu của bạn là:</p>
                    <h2 style="letter-spacing: 4px;">{token}</h2>
-                   <p>Mã này sẽ hết hạn lúc <strong>{expiredAt:dd/MM/yyyy HH:mm}</strong>, tức trong 15 phút.</p>
+                   <p>Mã này sẽ hết hạn lúc <strong>{vietnamExpiredAt:dd/MM/yyyy HH:mm}</strong>, tức trong 15 phút.</p>
                    <p>Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
                    """
         };

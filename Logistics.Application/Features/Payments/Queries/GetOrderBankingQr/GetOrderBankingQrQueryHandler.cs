@@ -33,6 +33,16 @@ public class GetOrderBankingQrQueryHandler(IApplicationDbContext context)
             return ApiResponse<BankingQrDto>.Fail("Bạn không có quyền thanh toán đơn hàng này.");
         }
 
+        if (order.PaymentMethod != PaymentMethod.BankingDemo)
+        {
+            return ApiResponse<BankingQrDto>.Fail("Đơn hàng không sử dụng phương thức chuyển khoản giả lập.");
+        }
+
+        if (order.Status == OrderStatus.Cancelled)
+        {
+            return ApiResponse<BankingQrDto>.Fail("Không thể thanh toán đơn hàng đã hủy.");
+        }
+
         var paidPaymentExists = await context.Payments
             .AnyAsync(
                 payment => payment.OrderId == order.Id && payment.Status == PaymentStatus.Paid,

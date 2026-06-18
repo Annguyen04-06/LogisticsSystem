@@ -10,5 +10,6 @@ public class PaymentDto
     public decimal Amount { get; set; }
     public PaymentMethod Method { get; set; }
     public PaymentStatus Status { get; set; }
+    public DateTime? PaidAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }

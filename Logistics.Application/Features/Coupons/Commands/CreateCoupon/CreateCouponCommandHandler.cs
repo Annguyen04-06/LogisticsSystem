@@ -32,12 +32,15 @@ public class CreateCouponCommandHandler(IApplicationDbContext context)
             return ApiResponse<CouponDto>.Fail("Coupon code already exists.");
         }
 
+        var startDateUtc = VietnamTime.ToUtc(request.Coupon.StartDate);
+        var endDateUtc = VietnamTime.ToUtc(request.Coupon.EndDate);
+
         var validationError = CouponHelper.ValidateCouponFields(
             request.Coupon.DiscountType,
             request.Coupon.DiscountValue,
             request.Coupon.MinOrderAmount,
-            request.Coupon.StartDate,
-            request.Coupon.EndDate,
+            startDateUtc,
+            endDateUtc,
             request.Coupon.UsageLimit);
 
         if (validationError is not null)
@@ -51,8 +54,8 @@ public class CreateCouponCommandHandler(IApplicationDbContext context)
             DiscountType = request.Coupon.DiscountType,
             DiscountValue = request.Coupon.DiscountValue,
             MinOrderAmount = request.Coupon.MinOrderAmount,
-            StartDate = request.Coupon.StartDate,
-            EndDate = request.Coupon.EndDate,
+            StartDate = startDateUtc,
+            EndDate = endDateUtc,
             UsageLimit = request.Coupon.UsageLimit,
             UsedCount = 0,
             IsActive = request.Coupon.IsActive

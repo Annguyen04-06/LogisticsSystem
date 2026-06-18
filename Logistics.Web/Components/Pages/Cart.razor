@@ -54,10 +54,10 @@ else
                         <thead>
                             <tr>
                                 <th>Sản phẩm</th>
-                                <th>Giá</th>
-                                <th>Số lượng</th>
-                                <th>Thành tiền</th>
-                                <th class="text-end">Thao tác</th>
+                                <th class="table-money">Đơn giá</th>
+                                <th class="table-number">Số lượng</th>
+                                <th class="table-money">Thành tiền</th>
+                                <th class="table-actions">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -73,18 +73,25 @@ else
                                 {
                                     <tr>
                                         <td class="fw-semibold"><span class="cart-item-name">@item.ProductName</span></td>
-                                        <td class="currency-value">@FormatMoney(item.Price)</td>
-                                        <td>
-                                            <input class="form-control form-control-sm quantity-input" type="number" min="1" @bind="item.Quantity" />
+                                        <td class="money-text currency-value table-money">@FormatMoney(item.Price)</td>
+                                        <td class="table-number">
+                                            <input class="form-control form-control-sm quantity-input"
+                                                   type="number"
+                                                   min="1"
+                                                   max="@item.ProductStock"
+                                                   value="@item.Quantity"
+                                                   @oninput="args => OnQuantityChanged(item, args)" />
                                         </td>
-                                        <td class="fw-bold currency-value">@FormatMoney(item.TotalPrice)</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-soft-warning action-btn me-1" @onclick="() => UpdateCartItemAsync(item)">
-                                                <i class="bi bi-pencil-square"></i> Cập nhật
-                                            </button>
-                                            <button class="btn btn-sm btn-soft-danger action-btn" @onclick="() => RemoveCartItemAsync(item.Id)">
-                                                <i class="bi bi-trash"></i> Xóa
-                                            </button>
+                                        <td class="fw-bold money-text currency-value table-money">@FormatMoney(GetLineTotal(item))</td>
+                                        <td class="table-actions">
+                                            <div class="table-action-group">
+                                                <button class="btn btn-sm btn-soft-warning action-btn" @onclick="() => UpdateCartItemAsync(item)">
+                                                    <i class="bi bi-pencil-square"></i> Cập nhật
+                                                </button>
+                                                <button class="btn btn-sm btn-soft-danger action-btn" @onclick="() => RemoveCartItemAsync(item.Id)">
+                                                    <i class="bi bi-trash"></i> Xóa
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
@@ -103,7 +110,7 @@ else
                 <div class="modern-card customer-summary-card cart-summary-card p-4 mb-3 hover-lift">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="text-muted fw-semibold">Tổng tiền</span>
-                        <span class="summary-money currency-value">@FormatMoney(cart.TotalAmount)</span>
+                        <span class="summary-money money-text currency-value">@FormatMoney(GetCartTotal())</span>
                     </div>
                     <button class="btn btn-gradient-success w-100 action-btn" type="submit" disabled="@(cart.Items.Count == 0 || isSubmittingOrder)">
                         <i class="bi bi-receipt"></i> @(isSubmittingOrder ? "Đang đặt hàng..." : "Đặt hàng")
@@ -166,12 +173,20 @@ else
         StateHasChanged();
     }
 
-    private async Task LoadCartAsync()
+    private async Task LoadCartAsync(bool showLoading = true)
     {
-        isLoading = true;
+        if (showLoading)
+        {
+            isLoading = true;
+        }
+
         var response = await CartApiService.GetMyCartAsync();
         cart = response?.Data ?? new CartDto();
-        isLoading = false;
+
+        if (showLoading)
+        {
+            isLoading = false;
+        }
     }
 
     private async Task UpdateCartItemAsync(CartItemDto item)
@@ -179,9 +194,9 @@ else
         successMessage = null;
         errorMessage = null;
 
-        if (item.Quantity <= 0)
+        if (!IsQuantityValid(item))
         {
-            errorMessage = "Số lượng phải lớn hơn 0.";
+            errorMessage = "Số lượng không hợp lệ.";
             return;
         }
 
@@ -189,12 +204,44 @@ else
 
         if (response?.Success == true && response.Data != null)
         {
-            cart = response.Data;
-            successMessage = "Đã cập nhật giỏ hàng.";
+            await LoadCartAsync(false);
+            successMessage = "Cập nhật giỏ hàng thành công.";
             return;
         }
 
         errorMessage = response?.Message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+    }
+
+    private void OnQuantityChanged(CartItemDto item, ChangeEventArgs args)
+    {
+        successMessage = null;
+        errorMessage = null;
+
+        item.Quantity = int.TryParse(args.Value?.ToString(), out var quantity)
+            ? quantity
+            : 0;
+        item.TotalPrice = GetLineTotal(item);
+        cart.TotalAmount = GetCartTotal();
+
+        if (!IsQuantityValid(item))
+        {
+            errorMessage = "Số lượng không hợp lệ.";
+        }
+    }
+
+    private static bool IsQuantityValid(CartItemDto item)
+    {
+        return item.Quantity >= 1 && item.Quantity <= item.ProductStock;
+    }
+
+    private static decimal GetLineTotal(CartItemDto item)
+    {
+        return item.Price * item.Quantity;
+    }
+
+    private decimal GetCartTotal()
+    {
+        return cart.Items.Sum(GetLineTotal);
     }
 
     private async Task RemoveCartItemAsync(int cartItemId)

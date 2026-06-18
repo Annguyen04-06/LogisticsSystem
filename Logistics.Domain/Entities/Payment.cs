@@ -10,4 +10,5 @@ public class Payment : BaseEntity
     public decimal Amount { get; set; }
     public PaymentMethod Method { get; set; }
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
+    public DateTime? PaidAt { get; set; }
 }

@@ -31,15 +31,19 @@ public class CancelOrderCommandHandler(IApplicationDbContext context)
             return ApiResponse<OrderDto>.Fail("Không thể hủy đơn hàng đã giao.");
         }
 
-        var payment = await context.Payments
+        var payments = await context.Payments
             .Where(payment => payment.OrderId == order.Id)
-            .OrderByDescending(payment => payment.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+            .OrderByDescending(payment => payment.CreatedAt)
+            .ThenByDescending(payment => payment.Id)
+            .ToListAsync(cancellationToken);
 
-        if (payment?.Status == PaymentStatus.Refunded)
+        if (payments.Any(payment => payment.Status == PaymentStatus.Refunded))
         {
             return ApiResponse<OrderDto>.Fail("Đơn hàng đã được hoàn tiền trước đó.");
         }
+
+        var payment = payments.FirstOrDefault(payment => payment.Status == PaymentStatus.Paid)
+            ?? payments.FirstOrDefault();
 
         if (request.CurrentUserRole == UserRole.Customer)
         {
@@ -118,10 +122,13 @@ public class CancelOrderCommandHandler(IApplicationDbContext context)
             context.PaymentTransactions.Add(new PaymentTransaction
             {
                 PaymentId = payment.Id,
+                UserId = order.CustomerId,
+                OrderId = order.Id,
                 TransactionCode = "Refund",
                 Amount = payment.Amount,
                 Status = PaymentStatus.Refunded,
-                Note = $"Hoàn tiền do hủy đơn hàng #{order.Id}"
+                Note = $"Hoàn tiền do hủy đơn hàng #{order.Id}",
+                CreatedAt = DateTime.UtcNow
             });
 
             refundHappened = true;

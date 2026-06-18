@@ -19,7 +19,7 @@ public class UpdateCartItemCommandHandler(IApplicationDbContext context)
 
         if (request.CartItem.Quantity <= 0)
         {
-            return ApiResponse<CartDto>.Fail("Quantity must be greater than 0.");
+            return ApiResponse<CartDto>.Fail("Số lượng không hợp lệ.");
         }
 
         var cart = await context.Carts
@@ -55,7 +55,7 @@ public class UpdateCartItemCommandHandler(IApplicationDbContext context)
 
         if (request.CartItem.Quantity > product.Quantity)
         {
-            return ApiResponse<CartDto>.Fail("Quantity cannot exceed product stock.");
+            return ApiResponse<CartDto>.Fail("Số lượng không được vượt quá tồn kho sản phẩm.");
         }
 
         cartItem.Quantity = request.CartItem.Quantity;
@@ -64,6 +64,6 @@ public class UpdateCartItemCommandHandler(IApplicationDbContext context)
         await context.SaveChangesAsync(cancellationToken);
 
         var cartDto = await CartDtoBuilder.BuildAsync(context, request.CurrentUserId, cancellationToken);
-        return ApiResponse<CartDto>.Ok(cartDto, "Cart item updated successfully.");
+        return ApiResponse<CartDto>.Ok(cartDto, "Cập nhật giỏ hàng thành công.");
     }
 }

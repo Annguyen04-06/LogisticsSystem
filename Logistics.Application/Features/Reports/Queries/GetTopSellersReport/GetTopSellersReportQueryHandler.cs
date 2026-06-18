@@ -32,7 +32,12 @@ public class GetTopSellersReportQueryHandler(IApplicationDbContext context)
                 TotalOrders = sellerOrders.Count(),
                 DeliveredOrders = sellerOrders.Count(order => order.Status == OrderStatus.Delivered),
                 TotalRevenue = sellerOrders
-                    .Where(order => order.Status == OrderStatus.Delivered)
+                    .Where(order =>
+                        order.Status == OrderStatus.Delivered &&
+                        context.Payments.Any(payment =>
+                            payment.OrderId == order.Id && payment.Status == PaymentStatus.Paid) &&
+                        !context.Payments.Any(payment =>
+                            payment.OrderId == order.Id && payment.Status == PaymentStatus.Refunded))
                     .Sum(order => (decimal?)order.FinalAmount) ?? 0
             })
             .OrderByDescending(seller => seller.TotalRevenue)
@@ -42,6 +47,10 @@ public class GetTopSellersReportQueryHandler(IApplicationDbContext context)
         var deliveredOrderDetails = await (
             from order in context.Orders
             where order.Status == OrderStatus.Delivered
+                && context.Payments.Any(payment =>
+                    payment.OrderId == order.Id && payment.Status == PaymentStatus.Paid)
+                && !context.Payments.Any(payment =>
+                    payment.OrderId == order.Id && payment.Status == PaymentStatus.Refunded)
             join detail in context.OrderDetails on order.Id equals detail.OrderId
             group detail by order.SellerId into sellerGroup
             select new

@@ -45,7 +45,7 @@ else if (dashboard != null)
         </div>
     </div>
 
-    <div class="row g-3 mb-4 fade-in">
+    <div class="row g-3 mb-4 fade-in stat-grid-row">
         @StatCard("Tổng sản phẩm", dashboard.TotalProducts.ToString("N0"), "Sản phẩm đang quản lý", "bi-box-seam")
         @StatCard("Tổng đơn hàng", dashboard.TotalOrders.ToString("N0"), "Tất cả trạng thái", "bi-receipt")
         @StatCard("Doanh thu", FormatCurrency(dashboard.TotalRevenue), "Đơn đã giao", "bi-cash-stack")

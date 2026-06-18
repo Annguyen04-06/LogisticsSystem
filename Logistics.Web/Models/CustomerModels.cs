@@ -109,6 +109,9 @@ public class CartItemDto
     [JsonPropertyName("quantity")]
     public int Quantity { get; set; }
 
+    [JsonPropertyName("productStock")]
+    public int ProductStock { get; set; }
+
     [JsonPropertyName("totalPrice")]
     public decimal TotalPrice { get; set; }
 }
@@ -172,6 +175,18 @@ public class OrderDto
 
     [JsonPropertyName("finalAmount")]
     public decimal FinalAmount { get; set; }
+
+    [JsonPropertyName("paymentMethod")]
+    public string PaymentMethod { get; set; } = "COD";
+
+    [JsonPropertyName("paymentStatus")]
+    public string PaymentStatus { get; set; } = "Pending";
+
+    [JsonPropertyName("isPaid")]
+    public bool IsPaid { get; set; }
+
+    [JsonPropertyName("paidAt")]
+    public DateTime? PaidAt { get; set; }
 
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;

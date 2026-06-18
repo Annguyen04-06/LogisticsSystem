@@ -113,12 +113,22 @@ public class CreateOrderCommandHandler(IApplicationDbContext context)
                 TotalAmount = totalAmount,
                 DiscountAmount = discountAmount,
                 FinalAmount = totalAmount - discountAmount,
+                PaymentMethod = request.Order.PaymentMethod,
                 Status = OrderStatus.Pending
             };
 
             context.Orders.Add(order);
             await context.SaveChangesAsync(cancellationToken);
             createdOrderIds.Add(order.Id);
+
+            context.Payments.Add(new Payment
+            {
+                OrderId = order.Id,
+                UserId = request.CurrentUserId,
+                Amount = order.FinalAmount,
+                Method = order.PaymentMethod,
+                Status = PaymentStatus.Pending
+            });
 
             if (isFirstOrder && coupon is not null)
             {

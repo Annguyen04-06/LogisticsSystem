@@ -9,7 +9,7 @@ namespace Logistics.Infrastructure.Data;
 
 public static class DbInitializer
 {
-    private const string DemoPassword = "123456";
+    private const string DemoPassword = "Annguyen@123";
 
     public static async Task InitializeAsync(IServiceProvider serviceProvider)
     {
@@ -69,6 +69,11 @@ public static class DbInitializer
             else
             {
                 user.FullName = seed.FullName;
+                if (!IsPasswordMatch(DemoPassword, user.PasswordHash))
+                {
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(DemoPassword);
+                }
+
                 user.PhoneNumber = seed.PhoneNumber;
                 user.Address = seed.Address;
                 user.Role = seed.Role;
@@ -103,6 +108,23 @@ public static class DbInitializer
         }
 
         await context.SaveChangesAsync();
+    }
+
+    private static bool IsPasswordMatch(string password, string passwordHash)
+    {
+        if (string.IsNullOrWhiteSpace(passwordHash))
+        {
+            return false;
+        }
+
+        try
+        {
+            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static async Task SeedCategoriesAsync(AppDbContext context)
@@ -368,6 +390,7 @@ public static class DbInitializer
                 TotalAmount = totalAmount,
                 DiscountAmount = 0,
                 FinalAmount = totalAmount,
+                PaymentMethod = PaymentMethod.BankingDemo,
                 Status = OrderStatus.Delivered,
                 CreatedAt = seed.CreatedAt
             };
@@ -405,6 +428,7 @@ public static class DbInitializer
                 Amount = totalAmount,
                 Method = PaymentMethod.BankingDemo,
                 Status = PaymentStatus.Paid,
+                PaidAt = seed.CreatedAt,
                 CreatedAt = seed.CreatedAt
             };
 
@@ -414,6 +438,8 @@ public static class DbInitializer
             context.PaymentTransactions.Add(new PaymentTransaction
             {
                 PaymentId = payment.Id,
+                UserId = seed.CustomerId,
+                OrderId = order.Id,
                 TransactionCode = seed.TransactionCode,
                 Amount = totalAmount,
                 Status = PaymentStatus.Paid,

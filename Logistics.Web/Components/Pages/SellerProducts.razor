@@ -123,14 +123,14 @@ else
         <table class="table table-hover align-middle modern-table mb-0">
             <thead>
                 <tr>
-                    <th>Ảnh</th>
-                    <th>Mã sản phẩm</th>
-                    <th>Tên sản phẩm</th>
+                    <th class="table-text">Ảnh</th>
+                    <th class="table-id">Mã sản phẩm</th>
+                    <th class="table-text">Tên sản phẩm</th>
                     <th>Danh mục</th>
-                    <th>Giá</th>
-                    <th>Số lượng</th>
-                    <th>Trạng thái</th>
-                    <th class="text-end">Thao tác</th>
+                    <th class="table-money">Giá</th>
+                    <th class="table-number">Số lượng</th>
+                    <th class="table-status">Trạng thái</th>
+                    <th class="table-actions">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -157,17 +157,17 @@ else
                                     }
                                 </div>
                             </td>
-                            <td>#@product.Id</td>
+                            <td class="table-id">#@product.Id</td>
                             <td class="seller-product-name">@product.Name</td>
                             <td>@product.CategoryName</td>
-                            <td class="seller-price-text currency-value">@product.Price.ToString("N0") đ</td>
-                            <td>@product.Quantity</td>
-                            <td>
+                            <td class="seller-price-text currency-value table-money">@product.Price.ToString("N0") đ</td>
+                            <td class="table-number">@product.Quantity</td>
+                            <td class="table-status">
                                 <span class="status-badge @(product.IsActive ? "badge-soft-success" : "badge-soft-secondary")">
                                     @(product.IsActive ? "Đang bán" : "Ngừng bán")
                                 </span>
                             </td>
-                            <td class="text-end">
+                            <td class="table-actions">
                                 <div class="seller-action-stack">
                                 <div class="seller-image-upload">
                                     <InputFile class="form-control form-control-sm" OnChange="args => OnProductImageSelected(product.Id, args)" accept=".jpg,.jpeg,.png,.webp" />

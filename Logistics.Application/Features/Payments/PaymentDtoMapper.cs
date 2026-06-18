@@ -15,6 +15,7 @@ internal static class PaymentDtoMapper
             Amount = payment.Amount,
             Method = payment.Method,
             Status = payment.Status,
+            PaidAt = payment.PaidAt,
             CreatedAt = payment.CreatedAt
         };
     }
@@ -35,9 +36,11 @@ internal static class PaymentDtoMapper
         {
             Id = transaction.Id,
             PaymentId = transaction.PaymentId,
+            OrderId = transaction.OrderId,
             Amount = transaction.Amount,
             Type = transaction.TransactionCode,
             Note = transaction.Note,
+            Status = transaction.Status.ToString(),
             CreatedAt = transaction.CreatedAt
         };
     }

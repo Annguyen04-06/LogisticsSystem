@@ -67,11 +67,11 @@ else
                         </div>
                         <div>
                             <span>Ngày nhận đơn</span>
-                            <strong>@delivery.AssignedAt.ToString("dd/MM/yyyy HH:mm")</strong>
+                            <strong>@VietnamDateTime.Format(delivery.AssignedAt)</strong>
                         </div>
                         <div>
                             <span>Ngày giao xong</span>
-                            <strong>@(delivery.DeliveredAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</strong>
+                            <strong>@VietnamDateTime.Format(delivery.DeliveredAt)</strong>
                         </div>
                     </div>
 

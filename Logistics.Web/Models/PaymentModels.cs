@@ -23,8 +23,35 @@ public class PaymentDto
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
 
+    [JsonPropertyName("paidAt")]
+    public DateTime? PaidAt { get; set; }
+
     [JsonPropertyName("createdAt")]
     public DateTime CreatedAt { get; set; }
+}
+
+public class WalletTransactionDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = string.Empty;
+
+    [JsonPropertyName("amount")]
+    public decimal Amount { get; set; }
+
+    [JsonPropertyName("note")]
+    public string Note { get; set; } = string.Empty;
+
+    [JsonPropertyName("createdAt")]
+    public DateTime CreatedAt { get; set; }
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = string.Empty;
+
+    [JsonPropertyName("orderId")]
+    public int? OrderId { get; set; }
 }
 
 public class WalletDto

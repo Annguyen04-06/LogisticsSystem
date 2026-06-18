@@ -45,13 +45,13 @@
             <div class="col-md-3"><strong>Mã:</strong> @selectedUser.Id</div>
             <div class="col-md-3"><strong>Vai trò:</strong> @DisplayRole(selectedUser.Role)</div>
             <div class="col-md-3"><strong>Số điện thoại:</strong> @selectedUser.PhoneNumber</div>
-            <div class="col-md-3"><strong>Ngày tạo:</strong> @selectedUser.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+            <div class="col-md-3"><strong>Ngày tạo:</strong> @VietnamDateTime.Format(selectedUser.CreatedAt)</div>
             <div class="col-12"><strong>Địa chỉ:</strong> @selectedUser.Address</div>
         </div>
     </div>
 }
 
-<div class="row g-3 mb-4 fade-in">
+<div class="row g-3 mb-4 fade-in stat-grid-row">
     @StatCard("Tổng người dùng", users.Count.ToString("N0"), "Tất cả tài khoản trong hệ thống", "bi-people")
     @StatCard("Đang hoạt động", users.Count(user => user.IsActive).ToString("N0"), "Có thể đăng nhập hệ thống", "bi-shield-check")
     @StatCard("Người bán chờ duyệt", users.Count(user => user.Role == "Seller" && !user.IsApproved).ToString("N0"), "Cần quản trị viên phê duyệt", "bi-hourglass-split")
@@ -77,14 +77,14 @@
             <table class="table table-hover align-middle modern-table mb-0">
                 <thead>
                     <tr>
-                        <th>Mã</th>
+                        <th class="table-id">Mã</th>
                         <th>Họ và tên</th>
                         <th>Email</th>
                         <th>Số điện thoại</th>
-                        <th>Vai trò</th>
-                        <th>Trạng thái</th>
-                        <th>Phê duyệt</th>
-                        <th class="text-end">Thao tác</th>
+                        <th class="table-status">Vai trò</th>
+                        <th class="table-status">Trạng thái</th>
+                        <th class="table-status">Phê duyệt</th>
+                        <th class="table-actions">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,26 +99,26 @@
                         @foreach (var user in users)
                         {
                             <tr>
-                                <td class="fw-semibold">#@user.Id</td>
+                                <td class="fw-semibold table-id">#@user.Id</td>
                                 <td class="fw-semibold">@user.FullName</td>
                                 <td>@user.Email</td>
                                 <td>@user.PhoneNumber</td>
-                                <td>
+                                <td class="table-status">
                                     <span class="status-badge @RoleBadgeClass(user.Role)">
                                         @DisplayRole(user.Role)
                                     </span>
                                 </td>
-                                <td>
+                                <td class="table-status">
                                     <span class="status-badge @(user.IsActive ? "status-delivered" : "status-cancelled")">
                                         @(user.IsActive ? "Đang hoạt động" : "Đã vô hiệu hóa")
                                     </span>
                                 </td>
-                                <td>
+                                <td class="table-status">
                                     <span class="status-badge @(user.IsApproved ? "status-delivered" : "status-pending")">
                                         @(user.IsApproved ? "Đã duyệt" : "Chờ duyệt")
                                     </span>
                                 </td>
-                                <td class="text-end">
+                                <td class="table-actions">
                                     <div class="admin-row-actions">
                                         @if (user.Role == "Seller" && !user.IsApproved)
                                         {

@@ -44,7 +44,7 @@ else
         // Mô phỏng tải dữ liệu bất đồng bộ để minh họa stream rendering.
         await Task.Delay(500);
 
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
+        var startDate = DateOnly.FromDateTime(VietnamDateTime.Now);
         var summaries = new[] { "Rất lạnh", "Lạnh", "Se lạnh", "Mát", "Dễ chịu", "Ấm", "Nóng nhẹ", "Nóng", "Oi bức", "Nắng gắt" };
         forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
         {

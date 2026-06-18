@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Logistics.Web.Helpers;
 
 namespace Logistics.Web.Models;
 
@@ -165,10 +166,10 @@ public class CreateCouponDto
     public decimal MinOrderAmount { get; set; }
 
     [JsonPropertyName("startDate")]
-    public DateTime StartDate { get; set; } = DateTime.Today;
+    public DateTime StartDate { get; set; } = VietnamDateTime.Today;
 
     [JsonPropertyName("endDate")]
-    public DateTime EndDate { get; set; } = DateTime.Today.AddDays(30);
+    public DateTime EndDate { get; set; } = VietnamDateTime.Today.AddDays(30);
 
     [Range(1, int.MaxValue, ErrorMessage = "Số lượt dùng phải lớn hơn 0.")]
     [JsonPropertyName("usageLimit")]
@@ -192,10 +193,10 @@ public class UpdateCouponDto
     public decimal MinOrderAmount { get; set; }
 
     [JsonPropertyName("startDate")]
-    public DateTime StartDate { get; set; } = DateTime.Today;
+    public DateTime StartDate { get; set; } = VietnamDateTime.Today;
 
     [JsonPropertyName("endDate")]
-    public DateTime EndDate { get; set; } = DateTime.Today.AddDays(30);
+    public DateTime EndDate { get; set; } = VietnamDateTime.Today.AddDays(30);
 
     [Range(1, int.MaxValue, ErrorMessage = "Số lượt dùng phải lớn hơn 0.")]
     [JsonPropertyName("usageLimit")]

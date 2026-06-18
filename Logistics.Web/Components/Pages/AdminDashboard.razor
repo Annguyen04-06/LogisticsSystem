@@ -75,7 +75,7 @@ else if (dashboard is not null)
         </div>
     </div>
 
-    <div class="row g-3 mb-4 fade-in">
+    <div class="row g-3 mb-4 fade-in stat-grid-row">
         @StatCard("Tổng người dùng", dashboard.TotalUsers.ToString("N0"), "Tài khoản trong hệ thống", "bi-people")
         @StatCard("Tổng sản phẩm", dashboard.TotalProducts.ToString("N0"), "Sản phẩm đang quản lý", "bi-box-seam")
         @StatCard("Tổng đơn hàng", dashboard.TotalOrders.ToString("N0"), "Tất cả trạng thái", "bi-receipt")
@@ -116,8 +116,8 @@ else if (dashboard is not null)
                         <thead>
                             <tr>
                                 <th>Ngày</th>
-                                <th>Số đơn</th>
-                                <th>Doanh thu</th>
+                                <th class="table-number">Số đơn</th>
+                                <th class="table-money">Doanh thu</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -133,8 +133,8 @@ else if (dashboard is not null)
                                 {
                                     <tr>
                                         <td>@item.Date.ToString("dd/MM/yyyy")</td>
-                                        <td>@item.TotalOrders.ToString("N0")</td>
-                                        <td class="fw-bold currency-value">@FormatCurrency(item.Revenue)</td>
+                                        <td class="table-number">@item.TotalOrders.ToString("N0")</td>
+                                        <td class="fw-bold currency-value table-money">@FormatCurrency(item.Revenue)</td>
                                     </tr>
                                 }
                             }
@@ -157,10 +157,10 @@ else if (dashboard is not null)
                     <table class="table table-hover align-middle modern-table mb-0">
                         <thead>
                             <tr>
-                                <th>Năm</th>
-                                <th>Tháng</th>
-                                <th>Số đơn</th>
-                                <th>Doanh thu</th>
+                                <th class="table-number">Năm</th>
+                                <th class="table-number">Tháng</th>
+                                <th class="table-number">Số đơn</th>
+                                <th class="table-money">Doanh thu</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -175,10 +175,10 @@ else if (dashboard is not null)
                                 @foreach (var item in ordersByMonth.Take(8))
                                 {
                                     <tr>
-                                        <td>@item.Year</td>
-                                        <td>@item.Month</td>
-                                        <td>@item.TotalOrders.ToString("N0")</td>
-                                        <td class="fw-bold currency-value">@FormatCurrency(item.Revenue)</td>
+                                        <td class="table-number">@item.Year</td>
+                                        <td class="table-number">@item.Month</td>
+                                        <td class="table-number">@item.TotalOrders.ToString("N0")</td>
+                                        <td class="fw-bold currency-value table-money">@FormatCurrency(item.Revenue)</td>
                                     </tr>
                                 }
                             }
